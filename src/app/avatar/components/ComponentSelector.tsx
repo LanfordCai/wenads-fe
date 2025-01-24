@@ -2,6 +2,7 @@ import { FC, useRef, MouseEvent, useState } from 'react';
 import Image from 'next/image';
 import { ComponentCategory, ComponentInfo } from '../types';
 import { useComponentContract } from '../hooks/useComponentContract';
+import { useNotification } from '../../contexts/NotificationContext';
 
 interface ComponentSelectorProps {
   category: ComponentCategory;
@@ -21,6 +22,7 @@ const ComponentSelector: FC<ComponentSelectorProps> = ({
   const [clickStartX, setClickStartX] = useState(0);
   
   const { templates, templateIds } = useComponentContract(category);
+  const { showNotification } = useNotification();
 
   const formatPrice = (price: bigint) => {
     return (Number(price) / 1e18).toFixed(2);
@@ -51,6 +53,14 @@ const ComponentSelector: FC<ComponentSelectorProps> = ({
         const templateId = button.getAttribute('data-template-id');
         const template = templates.find(t => t.id.toString() === templateId);
         if (template) {
+          if (!template.isActive) {
+            showNotification('This component is currently inactive 🚫', 'error');
+            return;
+          }
+          if (template.currentSupply >= template.maxSupply) {
+            showNotification('This component is sold out! Try another one 🔥', 'error');
+            return;
+          }
           const componentInfo: ComponentInfo = {
             id: template.id.toString(),
             image: template.image,

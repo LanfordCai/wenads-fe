@@ -24,6 +24,25 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
   const { showNotification } = useNotification();
   const { isConnected } = useAccount();
 
+  const degenPhrases = [
+    '🫡 WAGMI SER',
+    '🦧 APE TOGETHER',
+    '🌙 WEN MOON',
+    '💎 DIAMOND HANDS',
+    '🚀 NGMI PAPER HANDS',
+    '🐸 PEPE APPROVES',
+    '🦍 DEGEN SZN',
+    '🔥 PROBABLY NOTHING',
+    '🤝 GM FREN',
+    '🫂 HODL ME'
+  ];
+
+  const hasChanges = Object.entries(selectedComponents).some(([category, component]) => {
+    if (category === 'body') return false;
+    const currentTemplateId = templates[category as keyof typeof templates];
+    return currentTemplateId?.toString() !== component?.id;
+  });
+
   const getMintButtonText = () => {
     if (!isConnected) return '🚀 CONNECT TO MINT';
     if (isProcessing) {
@@ -31,13 +50,7 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
       return '🔥 MINTING...';
     }
     if (hasNFT) {
-      // Check if there are any changes to apply
-      const hasChanges = Object.entries(selectedComponents).some(([category, component]) => {
-        if (category === 'body') return false;
-        const currentTemplateId = templates[category as keyof typeof templates];
-        return currentTemplateId?.toString() !== component?.id;
-      });
-      return hasChanges ? '🔥 CHANGE ITEMS' : '✨ NO CHANGES';
+      return hasChanges ? '🔥 CHANGE ITEMS' : degenPhrases[Math.floor(Math.random() * degenPhrases.length)];
     }
     return '🔥 MINT';
   };
@@ -142,11 +155,11 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
 
       <button
         onClick={handleMint}
-        disabled={!isConnected || isProcessing}
+        disabled={!isConnected || isProcessing || (hasNFT && !hasChanges)}
         className={`
           w-full max-w-[400px] py-3 px-4 rounded-xl font-black text-center uppercase transition-all
           border-4 
-          ${!isConnected
+          ${!isConnected || (hasNFT && !hasChanges)
             ? 'bg-purple-200 text-purple-400 border-purple-300 cursor-not-allowed'
             : 'bg-[#8B5CF6] text-white border-[#7C3AED] shadow-[4px_4px_0px_0px_#5B21B6] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#5B21B6]'
           }
