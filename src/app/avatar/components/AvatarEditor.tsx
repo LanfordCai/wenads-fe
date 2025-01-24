@@ -10,7 +10,7 @@ const renderingCategories: ComponentCategory[] = ['background', 'body', 'hairsty
 
 interface AvatarEditorProps {
   selectedComponents: AvatarState;
-  onSelect: (component: any) => void;
+  onSelect: (category: ComponentCategory, component: ComponentInfo) => void;
   hasNFT: boolean;
 }
 
@@ -157,6 +157,14 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
 
       <div className="text-center text-sm">
         <span className="text-purple-600 font-bold">Total Price: {calculateTotalPrice()} MON</span>
+      </div>
+
+      <div className="max-w-[400px] text-sm text-purple-700 bg-purple-50 p-4 rounded-xl border-2 border-purple-200">
+        <p>
+          WeNads is a unique Soulbound Token (SBT) collection where each address can own exactly one NFT. 
+          While your WeNads NFT is bound to you, its components are ERC1155 tokens that can be freely traded. 
+          Mix and match different components to create your perfect avatar - all powered by fully on-chain assets!
+        </p>
       </div>
     </div>
   );

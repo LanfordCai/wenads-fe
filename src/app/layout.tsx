@@ -1,11 +1,16 @@
 import "./globals.css";
 import "@rainbow-me/rainbowkit/styles.css";
 
-import { Inter } from "next/font/google";
+import { Inter, Permanent_Marker } from "next/font/google";
 import Providers from "./providers";
 import { NotificationProvider } from './contexts/NotificationContext';
 
 const inter = Inter({ subsets: ["latin"] });
+const permanentMarker = Permanent_Marker({
+  weight: '400',
+  subsets: ['latin'],
+  display: 'swap',
+});
 
 export default function RootLayout({
   children,
