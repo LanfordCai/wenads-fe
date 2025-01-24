@@ -1,12 +1,15 @@
-import { useWriteContract, useReadContract, useAccount } from 'wagmi';
+import { useWriteContract, useReadContract, useAccount, usePublicClient } from 'wagmi';
 import { AvatarState, WeNadsAvatar } from '../types';
 import WeNadsAvatarABI from '@/contracts/abis/WeNadsAvatar.json';
 import WeNadsComponentABI from '@/contracts/abis/WeNadsComponent.json';
 import { CONTRACT_ADDRESSES } from '@/contracts/config';
+import { useState, useEffect } from 'react';
 
 export const useAvatarContract = (selectedComponents: AvatarState) => {
   const { address } = useAccount();
   const { writeContractAsync } = useWriteContract();
+  const publicClient = usePublicClient();
+  const [currentTemplates, setCurrentTemplates] = useState<Record<string, bigint | undefined>>({});
 
   // Check if user has a WeNads NFT
   const { data: balance = BigInt(0) } = useReadContract({
@@ -32,8 +35,6 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
     }
   });
 
-  console.log("tokenId", tokenId, "address", address)
-
   // Get WeNads components
   const { data: avatar } = useReadContract({
     address: CONTRACT_ADDRESSES.AVATAR,
@@ -45,64 +46,112 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
     }
   }) as { data: WeNadsAvatar };
 
-  // Get template IDs for each component if we have an avatar
-  const { data: backgroundTemplate } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT,
-    abi: WeNadsComponentABI,
-    functionName: 'getTokenTemplate',
-    args: [avatar?.backgroundId],
-    query: {
-      enabled: !!avatar?.backgroundId,
-    }
-  }) as { data: bigint };
+  const fetchTemplates = async () => {
+    if (!avatar || !publicClient) return;
 
-  const { data: hairstyleTemplate } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT,
-    abi: WeNadsComponentABI,
-    functionName: 'getTokenTemplate',
-    args: [avatar?.headId],
-    query: {
-      enabled: !!avatar?.headId,
-    }
-  }) as { data: bigint };
+    const [background, hairstyle, eyes, mouth, flower] = await Promise.all([
+      publicClient.readContract({
+        address: CONTRACT_ADDRESSES.COMPONENT,
+        abi: WeNadsComponentABI,
+        functionName: 'getTokenTemplate',
+        args: [avatar.backgroundId]
+      }),
+      publicClient.readContract({
+        address: CONTRACT_ADDRESSES.COMPONENT,
+        abi: WeNadsComponentABI,
+        functionName: 'getTokenTemplate',
+        args: [avatar.headId]
+      }),
+      publicClient.readContract({
+        address: CONTRACT_ADDRESSES.COMPONENT,
+        abi: WeNadsComponentABI,
+        functionName: 'getTokenTemplate',
+        args: [avatar.eyesId]
+      }),
+      publicClient.readContract({
+        address: CONTRACT_ADDRESSES.COMPONENT,
+        abi: WeNadsComponentABI,
+        functionName: 'getTokenTemplate',
+        args: [avatar.mouthId]
+      }),
+      publicClient.readContract({
+        address: CONTRACT_ADDRESSES.COMPONENT,
+        abi: WeNadsComponentABI,
+        functionName: 'getTokenTemplate',
+        args: [avatar.accessoryId]
+      })
+    ]) as [bigint, bigint, bigint, bigint, bigint];
 
-  const { data: eyesTemplate } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT,
-    abi: WeNadsComponentABI,
-    functionName: 'getTokenTemplate',
-    args: [avatar?.eyesId],
-    query: {
-      enabled: !!avatar?.eyesId,
-    }
-  }) as { data: bigint };
-
-  const { data: mouthTemplate } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT,
-    abi: WeNadsComponentABI,
-    functionName: 'getTokenTemplate',
-    args: [avatar?.mouthId],
-    query: {
-      enabled: !!avatar?.mouthId,
-    }
-  }) as { data: bigint };
-
-  const { data: flowerTemplate } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT,
-    abi: WeNadsComponentABI,
-    functionName: 'getTokenTemplate',
-    args: [avatar?.accessoryId],
-    query: {
-      enabled: !!avatar?.accessoryId,
-    }
-  }) as { data: bigint };
-
-  const templates = {
-    background: backgroundTemplate,
-    hairstyle: hairstyleTemplate,
-    eyes: eyesTemplate,
-    mouth: mouthTemplate,
-    flower: flowerTemplate
+    setCurrentTemplates({
+      background,
+      hairstyle,
+      eyes,
+      mouth,
+      flower
+    });
   };
+
+  const fetchAvatar = async () => {
+    if (!tokenId || !publicClient) return;
+
+    const newAvatar = await publicClient.readContract({
+      address: CONTRACT_ADDRESSES.AVATAR,
+      abi: WeNadsAvatarABI,
+      functionName: 'getAvatar',
+      args: [tokenId]
+    }) as WeNadsAvatar;
+
+    // After getting new avatar data, fetch its templates
+    if (newAvatar) {
+      const [background, hairstyle, eyes, mouth, flower] = await Promise.all([
+        publicClient.readContract({
+          address: CONTRACT_ADDRESSES.COMPONENT,
+          abi: WeNadsComponentABI,
+          functionName: 'getTokenTemplate',
+          args: [newAvatar.backgroundId]
+        }),
+        publicClient.readContract({
+          address: CONTRACT_ADDRESSES.COMPONENT,
+          abi: WeNadsComponentABI,
+          functionName: 'getTokenTemplate',
+          args: [newAvatar.headId]
+        }),
+        publicClient.readContract({
+          address: CONTRACT_ADDRESSES.COMPONENT,
+          abi: WeNadsComponentABI,
+          functionName: 'getTokenTemplate',
+          args: [newAvatar.eyesId]
+        }),
+        publicClient.readContract({
+          address: CONTRACT_ADDRESSES.COMPONENT,
+          abi: WeNadsComponentABI,
+          functionName: 'getTokenTemplate',
+          args: [newAvatar.mouthId]
+        }),
+        publicClient.readContract({
+          address: CONTRACT_ADDRESSES.COMPONENT,
+          abi: WeNadsComponentABI,
+          functionName: 'getTokenTemplate',
+          args: [newAvatar.accessoryId]
+        })
+      ]) as [bigint, bigint, bigint, bigint, bigint];
+
+      setCurrentTemplates({
+        background,
+        hairstyle,
+        eyes,
+        mouth,
+        flower
+      });
+    }
+  };
+
+  // Initial fetch of templates
+  useEffect(() => {
+    if (avatar) {
+      fetchTemplates();
+    }
+  }, [avatar]);
 
   const mint = async (): Promise<`0x${string}`> => {
     if (hasNFT) {
@@ -144,8 +193,8 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
     return hash;
   };
 
-  const changeComponent = async (category: string, templateId: string): Promise<`0x${string}`> => {
-    if (!hasNFT || !tokenId) {
+  const changeComponents = async (selectedComponentsToChange: Record<string, { id: string }>, originalComponents: AvatarState): Promise<`0x${string}`[]> => {
+    if (!hasNFT || !tokenId || !address || !publicClient) {
       throw new Error('You must own a WeNads NFT to change components');
     }
 
@@ -158,81 +207,144 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
       flower: 4
     };
 
-    const componentType = categoryToEnum[category];
-    if (componentType === undefined) {
-      throw new Error('Invalid component category');
-    }
+    // First check which templates we need to mint
+    const templateChecks = await Promise.all(
+      Object.entries(selectedComponentsToChange)
+        .filter(([category]) => category !== 'body')
+        .map(async ([category, component]) => {
+          let existingTokenId: bigint | null = null;
+          try {
+            const result = await publicClient.readContract({
+              address: CONTRACT_ADDRESSES.COMPONENT,
+              abi: WeNadsComponentABI,
+              functionName: 'getUserTemplateToken',
+              args: [address, BigInt(component.id)]
+            }) as bigint;
+            existingTokenId = result && result !== BigInt(0) ? result : null;
+          } catch (error) {
+            // If the call reverts, it means the user doesn't own this template
+            existingTokenId = null;
+          }
 
-    // First mint the component to get a token ID
-    const mintHash = await writeContractAsync({
-      address: CONTRACT_ADDRESSES.COMPONENT,
-      abi: WeNadsComponentABI,
-      functionName: 'mintComponent',
-      args: [
-        BigInt(templateId),
-        address
-      ],
-      value: BigInt(0) // TODO: Handle component price
-    });
+          return {
+            category,
+            templateId: component.id,
+            existingTokenId
+          };
+        })
+    );
 
-    if (!mintHash) {
-      throw new Error('Failed to mint component');
-    }
+    // Collect templates that need minting
+    const templatesNeedingMint = templateChecks
+      .filter(check => !check.existingTokenId)
+      .map(check => BigInt(check.templateId));
 
-    // Wait for the mint transaction to complete
-    const provider = window.ethereum;
-    if (!provider) throw new Error('No provider available');
+    let mintedTokenIds: Record<string, bigint> = {};
 
-    let tokenIdFromMint: bigint | undefined;
-    while (!tokenIdFromMint) {
-      const receipt = await provider.request({
-        method: 'eth_getTransactionReceipt',
-        params: [mintHash],
+    // Mint missing templates if any
+    if (templatesNeedingMint.length > 0) {
+      // Calculate total price for components to mint
+      const totalPrice = templateChecks
+        .filter(check => !check.existingTokenId)
+        .reduce((sum, check) => {
+          const component = originalComponents[check.category as keyof AvatarState];
+          return sum + (component?.price || BigInt(0));
+        }, BigInt(0));
+
+      const mintHash = await writeContractAsync({
+        address: CONTRACT_ADDRESSES.COMPONENT,
+        abi: WeNadsComponentABI,
+        functionName: 'mintComponents',
+        args: [templatesNeedingMint, address],
+        value: totalPrice
       });
 
-      if (receipt) {
-        // Find the TokenMinted event in the logs
-        const tokenMintedEvent = receipt.logs.find((log: any) => {
-          // This is the event signature for TokenMinted(uint256,uint256,address)
-          return log.topics[0] === '0x5f7666f57f33340a03e0b476a5e11b26744b98c42a4aa15da06bea896a2f06e4';
-        });
-
-        if (tokenMintedEvent) {
-          // The token ID is the first indexed parameter
-          tokenIdFromMint = BigInt(tokenMintedEvent.topics[1]);
-          break;
-        }
+      if (!mintHash) {
+        throw new Error('Failed to mint components');
       }
 
-      // Wait a bit before checking again
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Wait for the mint transaction to complete
+      await publicClient.waitForTransactionReceipt({ 
+        hash: mintHash
+      });
+
+      // After successful mint, get the token IDs for each template
+      await Promise.all(templatesNeedingMint.map(async (templateId, index) => {
+        const tokenId = await publicClient.readContract({
+          address: CONTRACT_ADDRESSES.COMPONENT,
+          abi: WeNadsComponentABI,
+          functionName: 'getUserTemplateToken',
+          args: [address, templateId]
+        }) as bigint;
+        mintedTokenIds[templateId.toString()] = tokenId;
+      }));
     }
 
-    if (!tokenIdFromMint) {
-      throw new Error('Failed to get minted token ID');
-    }
+    // Now change all components in one transaction
+    const currentComponents = {
+      backgroundId: avatar?.backgroundId || BigInt(0),
+      headId: avatar?.headId || BigInt(0),
+      eyesId: avatar?.eyesId || BigInt(0),
+      mouthId: avatar?.mouthId || BigInt(0),
+      accessoryId: avatar?.accessoryId || BigInt(0)
+    };
 
-    // Now we can change the component with the new token ID
+    // Map categories to their respective IDs, using either new token IDs or current ones
+    const backgroundId = templateChecks.find(c => c.category === 'background')
+      ? (mintedTokenIds[templateChecks.find(c => c.category === 'background')!.templateId] || templateChecks.find(c => c.category === 'background')!.existingTokenId!)
+      : currentComponents.backgroundId;
+
+    const headId = templateChecks.find(c => c.category === 'hairstyle')
+      ? (mintedTokenIds[templateChecks.find(c => c.category === 'hairstyle')!.templateId] || templateChecks.find(c => c.category === 'hairstyle')!.existingTokenId!)
+      : currentComponents.headId;
+
+    const eyesId = templateChecks.find(c => c.category === 'eyes')
+      ? (mintedTokenIds[templateChecks.find(c => c.category === 'eyes')!.templateId] || templateChecks.find(c => c.category === 'eyes')!.existingTokenId!)
+      : currentComponents.eyesId;
+
+    const mouthId = templateChecks.find(c => c.category === 'mouth')
+      ? (mintedTokenIds[templateChecks.find(c => c.category === 'mouth')!.templateId] || templateChecks.find(c => c.category === 'mouth')!.existingTokenId!)
+      : currentComponents.mouthId;
+
+    const accessoryId = templateChecks.find(c => c.category === 'flower')
+      ? (mintedTokenIds[templateChecks.find(c => c.category === 'flower')!.templateId] || templateChecks.find(c => c.category === 'flower')!.existingTokenId!)
+      : currentComponents.accessoryId;
+
     const changeHash = await writeContractAsync({
       address: CONTRACT_ADDRESSES.AVATAR,
       abi: WeNadsAvatarABI,
-      functionName: 'changeComponent',
+      functionName: 'changeComponents',
       args: [
         tokenId,
-        tokenIdFromMint,
-        componentType
+        backgroundId,
+        headId,
+        eyesId,
+        mouthId,
+        accessoryId
       ]
     });
 
-    return changeHash;
+    if (!changeHash) {
+      throw new Error('Failed to change components');
+    }
+
+    // Wait for transaction confirmation
+    await publicClient?.waitForTransactionReceipt({ 
+      hash: changeHash
+    });
+
+    // Fetch updated avatar and templates
+    await fetchAvatar();
+
+    return [changeHash as `0x${string}`];
   };
 
   return { 
     mint,
-    changeComponent,
+    changeComponents,
     hasNFT,
     avatar,
     isLoading: !!address && (hasNFT && !avatar && !!tokenId),
-    templates
+    templates: currentTemplates
   };
 }; 

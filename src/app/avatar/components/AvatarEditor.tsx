@@ -1,4 +1,4 @@
-import { FC, useState, useMemo } from 'react';
+import { FC, useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { AvatarState, ComponentCategory, ComponentInfo } from '../types';
 import { useAccount } from 'wagmi';
@@ -19,10 +19,16 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
   hasNFT,
 }) => {
   const { isConnected } = useAccount();
-  const { mint, changeComponent, avatar, templates } = useAvatarContract(selectedComponents);
+  const { mint, changeComponents, avatar, templates } = useAvatarContract(selectedComponents);
   const [isMinting, setIsMinting] = useState(false);
   const [mintError, setMintError] = useState<string | null>(null);
   const [mintSuccess, setMintSuccess] = useState(false);
+
+  // Reset mintSuccess when selected components change
+  useEffect(() => {
+    setMintSuccess(false);
+    setMintError(null);
+  }, [selectedComponents]);
 
   // Check if there are any actual changes to apply
   const hasChanges = useMemo(() => {
@@ -32,15 +38,21 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
       if (category === 'body') return false;
       if (!component) return false;
 
-      const currentTemplateId = templates[category as keyof typeof templates];
+      const currentTemplateId = templates[category];
       return currentTemplateId?.toString() !== component.id;
     });
   }, [hasNFT, templates, selectedComponents]);
 
   const getMintButtonText = () => {
     if (!isConnected) return '🚀 CONNECT TO MINT';
-    if (isMinting) return '🔥 MINTING...';
-    if (mintSuccess) return '✨ MINTED!';
+    if (isMinting) {
+      if (hasNFT) return '🔥 CHANGING...';
+      return '🔥 MINTING...';
+    }
+    if (mintSuccess) {
+      if (hasNFT) return '✨ CHANGED!';
+      return '✨ MINTED!';
+    }
     if (mintError) return '💀 FAILED';
     if (hasNFT) return hasChanges ? '🎨 CHANGE ITEMS' : '✨ NO CHANGES';
     return `🐸 MINT NOW`;
@@ -90,7 +102,7 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
   }
 
   const handleMint = async () => {
-    if (!mint || !changeComponent) return;
+    if (!mint || !changeComponents) return;
     
     try {
       setIsMinting(true);
@@ -98,57 +110,70 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
       setMintSuccess(false);
       
       if (hasNFT) {
-        if (!hasChanges) {
+        // Filter out components that haven't changed
+        const changedComponents = Object.entries(selectedComponents)
+          .filter(([category, component]) => {
+            if (!component) return false;
+            const currentTemplateId = templates[category];
+            return currentTemplateId?.toString() !== component.id;
+          })
+          .reduce((acc, [category, component]) => {
+            if (!component) return acc;
+            acc[category] = { id: component.id };
+            return acc;
+          }, {} as Record<string, { id: string }>);
+
+        if (Object.keys(changedComponents).length === 0) {
           setMintError('No changes to apply');
           setIsMinting(false);
           return;
         }
 
-        // Apply changes for each changed component
-        const promises = Object.entries(selectedComponents).map(async ([category, component]) => {
-          if (category === 'body') return;
-          if (!component) return;
+        const [hash] = await changeComponents(changedComponents, selectedComponents);
+        // Wait for transaction confirmation
+        const provider = window.ethereum;
+        if (!provider) throw new Error('No provider available');
 
-          const currentTemplateId = templates[category as keyof typeof templates];
-          if (currentTemplateId?.toString() === component.id) return;
+        while (true) {
+          const receipt = await provider.request({
+            method: 'eth_getTransactionReceipt',
+            params: [hash],
+          });
 
-          return changeComponent(category, component.id);
-        });
-
-        await Promise.all(promises.filter(Boolean));
-        setMintSuccess(true);
-      } else {
-        // Start the transaction
-        const response = await mint();
-        
-        // Keep checking transaction status
-        const checkInterval = setInterval(async () => {
-          try {
-            const provider = window.ethereum;
-            if (!provider) return;
-            
-            const txReceipt = await provider.request({
-              method: 'eth_getTransactionReceipt',
-              params: [response],
-            });
-
-            if (txReceipt) {
-              clearInterval(checkInterval);
-              if (txReceipt.status === '0x1') {
-                setMintSuccess(true);
-              } else {
-                setMintError('Transaction failed');
-              }
-              setIsMinting(false);
+          if (receipt) {
+            if (receipt.status === '0x1') {
+              setMintSuccess(true);
+            } else {
+              throw new Error('Transaction failed');
             }
-          } catch (error) {
-            console.error('Error checking transaction:', error);
+            break;
           }
-        }, 1000);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+      } else {
+        const hash = await mint();
+        // Wait for transaction confirmation
+        const provider = window.ethereum;
+        if (!provider) throw new Error('No provider available');
 
-        // Clear interval after 2 minutes to prevent infinite checking
-        setTimeout(() => clearInterval(checkInterval), 120000);
+        while (true) {
+          const receipt = await provider.request({
+            method: 'eth_getTransactionReceipt',
+            params: [hash],
+          });
+
+          if (receipt) {
+            if (receipt.status === '0x1') {
+              setMintSuccess(true);
+            } else {
+              throw new Error('Transaction failed');
+            }
+            break;
+          }
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
       }
+      setIsMinting(false);
     } catch (err) {
       console.error('Failed to mint:', err);
       setMintError(err instanceof Error ? err.message : 'Failed to mint avatar');
