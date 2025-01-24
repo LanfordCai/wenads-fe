@@ -3,13 +3,14 @@ import Image from 'next/image';
 import { AvatarState, ComponentCategory, ComponentInfo } from '../types';
 import { useAccount } from 'wagmi';
 import { useAvatarContract } from '../hooks/useAvatarContract';
+import { useNotification } from '../../contexts/NotificationContext';
 
 // Include body in rendering order but not in UI
 const renderingCategories: ComponentCategory[] = ['background', 'body', 'hairstyle', 'eyes', 'mouth', 'flower'];
 
 interface AvatarEditorProps {
   selectedComponents: AvatarState;
-  onSelect: (category: ComponentCategory, component: ComponentInfo) => void;
+  onSelect: (component: any) => void;
   hasNFT: boolean;
 }
 
@@ -18,71 +19,77 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
   onSelect,
   hasNFT,
 }) => {
+  const [isProcessing, setIsProcessing] = useState(false);
+  const { mint, changeComponents, templates } = useAvatarContract(selectedComponents);
+  const { showNotification } = useNotification();
   const { isConnected } = useAccount();
-  const { mint, changeComponents, avatar, templates, nftStatus, isLoading } = useAvatarContract(selectedComponents);
-  const [isMinting, setIsMinting] = useState(false);
-  const [mintError, setMintError] = useState<string | null>(null);
-  const [mintSuccess, setMintSuccess] = useState(false);
-
-  // Reset mintSuccess when selected components change
-  useEffect(() => {
-    setMintSuccess(false);
-    setMintError(null);
-  }, [selectedComponents]);
-
-  // Check if there are any actual changes to apply
-  const hasChanges = useMemo(() => {
-    if (nftStatus !== 'has_nft' || !templates) return true;
-
-    return Object.entries(selectedComponents).some(([category, component]) => {
-      if (category === 'body') return false;
-      if (!component) return false;
-
-      const currentTemplateId = templates[category];
-      return currentTemplateId?.toString() !== component.id;
-    });
-  }, [nftStatus, templates, selectedComponents]);
 
   const getMintButtonText = () => {
     if (!isConnected) return '🚀 CONNECT TO MINT';
-    if (isLoading) return '⌛ LOADING...';
-    if (isMinting) {
-      if (nftStatus === 'has_nft') return '🔥 CHANGING...';
+    if (isProcessing) {
+      if (hasNFT) return '🔥 CHANGING...';
       return '🔥 MINTING...';
     }
-    if (mintSuccess) {
-      if (nftStatus === 'has_nft') return '✨ CHANGED!';
-      return '✨ MINTED!';
+    if (hasNFT) return '🔥 CHANGE ITEMS';
+    return '🔥 MINT NOW';
+  };
+
+  const handleMint = async () => {
+    try {
+      setIsProcessing(true);
+      if (hasNFT) {
+        // Check if any components are different from current
+        const hasChanges = Object.entries(selectedComponents).some(([category, component]) => {
+          if (category === 'body') return false;
+          const currentTemplateId = templates[category as keyof typeof templates];
+          return currentTemplateId?.toString() !== component?.id;
+        });
+
+        if (!hasChanges) {
+          showNotification('No changes to apply', 'info');
+          return;
+        }
+
+        // Convert selectedComponents to the format expected by changeComponents
+        const changedComponents = Object.entries(selectedComponents).reduce((acc, [category, component]) => {
+          if (category !== 'body' && component) {
+            acc[category] = { id: component.id };
+          }
+          return acc;
+        }, {} as Record<string, { id: string }>);
+
+        showNotification('Changing components...', 'info');
+        const hash = await changeComponents(changedComponents, selectedComponents);
+        showNotification('Components changed successfully!', 'success');
+      } else {
+        showNotification('Minting avatar...', 'info');
+        const hash = await mint();
+        showNotification('Avatar minted successfully!', 'success');
+      }
+    } catch (err: any) {
+      showNotification(
+        err.message.includes('rejected') ? 'Transaction rejected by user' : err.message,
+        'error'
+      );
+    } finally {
+      setIsProcessing(false);
     }
-    if (mintError) return '💀 FAILED';
-    if (nftStatus === 'has_nft') return hasChanges ? '🎨 CHANGE ITEMS' : '✨ NO CHANGES';
-    return `🐸 MINT NOW`;
   };
 
   const calculateTotalPrice = () => {
-    const componentsPrice = Object.values(selectedComponents).reduce((total, component) => {
-      if (!component?.id) return total;
-      return total + (Number(component.price || 0) / 1e18);
-    }, 0);
-    return componentsPrice.toFixed(2);
+    return Object.values(selectedComponents).reduce(
+      (sum, component) => sum + (component?.price || BigInt(0)),
+      BigInt(0)
+    );
   };
 
   const renderPreview = () => {
-    // If we have an NFT and it's still loading, show loading state
-    if (nftStatus === 'has_nft' && isLoading) {
-      return (
-        <div className="flex items-center justify-center w-full h-full">
-          <div className="text-2xl font-bold text-purple-600">Loading...</div>
-        </div>
-      );
-    }
-
-    // If we have an NFT, only show components when avatar data is loaded
-    if (nftStatus === 'has_nft' && !avatar) {
+    // If we have an NFT but no components selected, return null
+    if (hasNFT && Object.keys(selectedComponents).length === 0) {
       return null;
     }
 
-    // Show default components for no NFT case
+    // Show components
     const getZIndex = (cat: ComponentCategory) => {
       switch (cat) {
         case 'background': return 0;
@@ -117,86 +124,6 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
     );
   };
 
-  const handleMint = async () => {
-    if (!mint || !changeComponents) return;
-    
-    try {
-      setIsMinting(true);
-      setMintError(null);
-      setMintSuccess(false);
-      
-      if (hasNFT) {
-        // Filter out components that haven't changed
-        const changedComponents = Object.entries(selectedComponents)
-          .filter(([category, component]) => {
-            if (!component) return false;
-            const currentTemplateId = templates[category];
-            return currentTemplateId?.toString() !== component.id;
-          })
-          .reduce((acc, [category, component]) => {
-            if (!component) return acc;
-            acc[category] = { id: component.id };
-            return acc;
-          }, {} as Record<string, { id: string }>);
-
-        if (Object.keys(changedComponents).length === 0) {
-          setMintError('No changes to apply');
-          setIsMinting(false);
-          return;
-        }
-
-        const [hash] = await changeComponents(changedComponents, selectedComponents);
-        // Wait for transaction confirmation
-        const provider = window.ethereum;
-        if (!provider) throw new Error('No provider available');
-
-        while (true) {
-          const receipt = await provider.request({
-            method: 'eth_getTransactionReceipt',
-            params: [hash],
-          });
-
-          if (receipt) {
-            if (receipt.status === '0x1') {
-              setMintSuccess(true);
-            } else {
-              throw new Error('Transaction failed');
-            }
-            break;
-          }
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      } else {
-        const hash = await mint();
-        // Wait for transaction confirmation
-        const provider = window.ethereum;
-        if (!provider) throw new Error('No provider available');
-
-        while (true) {
-          const receipt = await provider.request({
-            method: 'eth_getTransactionReceipt',
-            params: [hash],
-          });
-
-          if (receipt) {
-            if (receipt.status === '0x1') {
-              setMintSuccess(true);
-            } else {
-              throw new Error('Transaction failed');
-            }
-            break;
-          }
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-      }
-      setIsMinting(false);
-    } catch (err) {
-      console.error('Failed to mint:', err);
-      setMintError(err instanceof Error ? err.message : 'Failed to mint avatar');
-      setIsMinting(false);
-    }
-  };
-
   return (
     <div className="flex flex-col items-center space-y-8">
       <div className="w-full aspect-square max-w-[400px] bg-white rounded-xl shadow-[8px_8px_0px_0px_#8B5CF6] overflow-hidden border-4 border-[#8B5CF6]">
@@ -205,17 +132,13 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
 
       <button
         onClick={handleMint}
-        disabled={!isConnected || isMinting || mintSuccess || !mint || (hasNFT && !hasChanges)}
+        disabled={!isConnected || isProcessing}
         className={`
           w-full max-w-[400px] py-3 px-4 rounded-xl font-black text-center uppercase transition-all
           border-4 
-          ${!isConnected || !mint || (hasNFT && !hasChanges)
+          ${!isConnected
             ? 'bg-purple-200 text-purple-400 border-purple-300 cursor-not-allowed'
-            : mintSuccess
-              ? 'bg-green-500 text-white border-green-600 shadow-[4px_4px_0px_0px_#166534]'
-              : mintError
-                ? 'bg-red-500 text-white border-red-600 shadow-[4px_4px_0px_0px_#991B1B] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#991B1B]'
-                : 'bg-[#8B5CF6] text-white border-[#7C3AED] shadow-[4px_4px_0px_0px_#5B21B6] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#5B21B6]'
+            : 'bg-[#8B5CF6] text-white border-[#7C3AED] shadow-[4px_4px_0px_0px_#5B21B6] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#5B21B6]'
           }
         `}
       >
@@ -225,12 +148,6 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
       <div className="text-center text-sm">
         <span className="text-purple-600 font-bold">Total Price: {calculateTotalPrice()} MON</span>
       </div>
-
-      {mintError && (
-        <p className="text-red-500 text-sm font-black uppercase">
-          Error: {mintError}
-        </p>
-      )}
     </div>
   );
 };

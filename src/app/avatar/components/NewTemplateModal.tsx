@@ -3,6 +3,7 @@ import { ComponentCategory } from '../types';
 import { useComponentContract } from '../hooks/useComponentContract';
 import { parseEther } from 'viem';
 import { usePublicClient } from 'wagmi';
+import { useNotification } from '../../contexts/NotificationContext';
 
 // Remove body from visible categories since it's always selected
 const categories: ComponentCategory[] = ['background', 'hairstyle', 'eyes', 'mouth', 'flower'];
@@ -28,6 +29,7 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [imageData, setImageData] = useState<ImageData | null>(null);
   const publicClient = usePublicClient();
+  const { showNotification } = useNotification();
 
   const { createTemplate } = useComponentContract(category);
 
@@ -196,35 +198,45 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({
           }
 
           setIsPending(true);
+          showNotification('Creating template...', 'info');
+
           // Wait for transaction confirmation
           await publicClient.waitForTransactionReceipt({ hash });
           
           setIsPending(false);
           setIsConfirmed(true);
+          showNotification('Template created successfully!', 'success');
+
           // Close modal and refresh page after 2 seconds
           setTimeout(() => {
             handleClose();
             window.location.reload();
           }, 2000);
         } catch (err: any) {
-          setError(err.message || 'Failed to create template');
+          const errorMessage = err.message || 'Failed to create template';
+          setError(errorMessage);
+          showNotification(
+            errorMessage.includes('rejected') ? 'Transaction rejected by user' : errorMessage,
+            'error'
+          );
           setIsCreating(false);
           setIsPending(false);
-          setIsConfirmed(false);
         }
       };
 
       reader.onerror = () => {
-        setError('Failed to read image file');
+        const errorMessage = 'Failed to read image file';
+        setError(errorMessage);
+        showNotification(errorMessage, 'error');
         setIsCreating(false);
         setIsPending(false);
-        setIsConfirmed(false);
       };
     } catch (err: any) {
-      setError(err.message || 'Failed to create template');
+      const errorMessage = err.message || 'Failed to create template';
+      setError(errorMessage);
+      showNotification(errorMessage, 'error');
       setIsCreating(false);
       setIsPending(false);
-      setIsConfirmed(false);
     }
   };
 
