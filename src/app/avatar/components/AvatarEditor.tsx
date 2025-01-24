@@ -22,8 +22,6 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
   const [mintError, setMintError] = useState<string | null>(null);
   const [mintSuccess, setMintSuccess] = useState(false);
 
-  const MINT_FEE = 0.1; // 0.10 MON
-
   const getMintButtonText = () => {
     if (!isConnected) return '🚀 CONNECT TO MINT';
     if (isMinting) return '🔥 MINTING...';
@@ -37,7 +35,7 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
       if (!component?.id) return total;
       return total + (Number(component.price || 0) / 1e18);
     }, 0);
-    return (componentsPrice + MINT_FEE).toFixed(2);
+    return componentsPrice.toFixed(2);
   };
 
   const renderPreview = () => {
@@ -81,12 +79,42 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
     try {
       setIsMinting(true);
       setMintError(null);
-      await mint();
-      setMintSuccess(true);
+      setMintSuccess(false);
+      
+      // Start the transaction
+      const response = await mint();
+      
+      // Keep checking transaction status
+      const checkInterval = setInterval(async () => {
+        try {
+          const provider = window.ethereum;
+          if (!provider) return;
+          
+          const txReceipt = await provider.request({
+            method: 'eth_getTransactionReceipt',
+            params: [response],
+          });
+
+          if (txReceipt) {
+            clearInterval(checkInterval);
+            if (txReceipt.status === '0x1') {
+              setMintSuccess(true);
+            } else {
+              setMintError('Transaction failed');
+            }
+            setIsMinting(false);
+          }
+        } catch (error) {
+          console.error('Error checking transaction:', error);
+        }
+      }, 1000);
+
+      // Clear interval after 2 minutes to prevent infinite checking
+      setTimeout(() => clearInterval(checkInterval), 120000);
+
     } catch (err) {
       console.error('Failed to mint:', err);
       setMintError(err instanceof Error ? err.message : 'Failed to mint avatar');
-    } finally {
       setIsMinting(false);
     }
   };
@@ -118,8 +146,6 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
 
       <div className="text-center text-sm">
         <span className="text-purple-600 font-bold">Total Price: {calculateTotalPrice()} MON</span>
-        <br />
-        <span className="text-purple-400 text-xs">(Including {MINT_FEE} MON mint fee)</span>
       </div>
 
       {mintError && (

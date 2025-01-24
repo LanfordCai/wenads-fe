@@ -8,17 +8,40 @@ const CONTRACT_ADDRESS = '0xE387B6860067D97107122D2Dc90e546529484b27';
 export const useAvatarContract = (selectedComponents: AvatarState) => {
   const { writeContract } = useWriteContract();
 
-  const mint = async () => {
-    const componentIds = Object.values(selectedComponents).map(
-      component => component?.id || '0'
+  const mint = async (): Promise<`0x${string}`> => {
+    const {
+      background,
+      hairstyle,
+      eyes,
+      mouth,
+      flower
+    } = selectedComponents;
+
+    if (!background || !hairstyle || !eyes || !mouth || !flower) {
+      throw new Error('Please select all components before minting');
+    }
+
+    const totalPrice = Object.values(selectedComponents).reduce(
+      (sum, component) => sum + (component?.price || BigInt(0)),
+      BigInt(0)
     );
     
-    return writeContract({
+    const hash = await writeContract({
       address: CONTRACT_ADDRESS,
       abi: WeNadsAvatarABI,
-      functionName: 'mintAvatar',
-      args: [componentIds],
+      functionName: 'createAvatar',
+      args: [
+        BigInt(background.id),
+        BigInt(hairstyle.id),
+        BigInt(eyes.id),
+        BigInt(mouth.id),
+        BigInt(flower.id),
+        'WeNads Avatar' // Default name
+      ],
+      value: totalPrice
     });
+
+    return hash;
   };
 
   return { mint };
