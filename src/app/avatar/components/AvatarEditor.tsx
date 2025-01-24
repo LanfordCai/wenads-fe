@@ -30,8 +30,16 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
       if (hasNFT) return '🔥 CHANGING...';
       return '🔥 MINTING...';
     }
-    if (hasNFT) return '🔥 CHANGE ITEMS';
-    return '🔥 MINT NOW';
+    if (hasNFT) {
+      // Check if there are any changes to apply
+      const hasChanges = Object.entries(selectedComponents).some(([category, component]) => {
+        if (category === 'body') return false;
+        const currentTemplateId = templates[category as keyof typeof templates];
+        return currentTemplateId?.toString() !== component?.id;
+      });
+      return hasChanges ? '🔥 CHANGE ITEMS' : '✨ NO CHANGES';
+    }
+    return '🔥 MINT';
   };
 
   const handleMint = async () => {
