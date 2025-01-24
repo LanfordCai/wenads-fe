@@ -1,5 +1,12 @@
 export type ComponentCategory = 'background' | 'body' | 'eyes' | 'mouth' | 'hairstyle' | 'flower';
 
+export interface ComponentInfo {
+  id: string;
+  image: string;
+  name: string;
+  price: bigint;
+}
+
 export interface AvatarComponent {
   id: string;
   category: ComponentCategory;
@@ -8,12 +15,12 @@ export interface AvatarComponent {
 }
 
 export interface AvatarState {
-  background?: string;
-  body?: string;
-  eyes?: string;
-  mouth?: string;
-  hairstyle?: string;
-  flower?: string;
+  background?: ComponentInfo;
+  body?: ComponentInfo;
+  eyes?: ComponentInfo;
+  mouth?: ComponentInfo;
+  hairstyle?: ComponentInfo;
+  flower?: ComponentInfo;
 }
 
 export interface AvatarSelection {

@@ -1,30 +1,55 @@
 'use client';
 
-import { FC, useState } from 'react';
+import { FC, useState, useEffect } from 'react';
 import AvatarEditor from './components/AvatarEditor';
 import ComponentSelector from './components/ComponentSelector';
-import { ComponentCategory, AvatarState } from './types';
+import { ComponentCategory, AvatarState, ComponentInfo } from './types';
 import { ConnectBtn } from '../components/connectButton';
+import { useComponentContract } from './hooks/useComponentContract';
 import './styles.css';
 
 // Remove body from visible categories since it's always selected
 const categories: ComponentCategory[] = ['background', 'hairstyle', 'eyes', 'mouth', 'flower'];
 
 const AvatarGenerator: FC = () => {
-  // Initialize with default selections for all components
-  const [selectedComponents, setSelectedComponents] = useState<AvatarState>({
-    background: 'background-1',
-    body: 'body-1', // Always selected but hidden from UI
-    hairstyle: 'hairstyle-1',
-    eyes: 'eyes-1',
-    mouth: 'mouth-1',
-    flower: 'flowers-1',
-  });
+  const [selectedComponents, setSelectedComponents] = useState<AvatarState>({});
 
-  const handleSelect = (category: ComponentCategory, componentId: string) => {
+  // Get first component from each category
+  const categoryContracts = categories.map(category => useComponentContract(category));
+
+  useEffect(() => {
+    // Only set components if we have loaded templates
+    if (!categoryContracts.every(contract => contract.templates.length > 0)) return;
+
+    const initialComponents: AvatarState = {
+      body: {
+        id: '0',
+        image: '/body.png',
+        name: 'Default Body',
+        price: BigInt(0)
+      }
+    };
+
+    categoryContracts.forEach((contract, index) => {
+      const category = categories[index];
+      const firstTemplate = contract.templates[0];
+      if (firstTemplate) {
+        initialComponents[category] = {
+          id: firstTemplate.id.toString(),
+          image: firstTemplate.image,
+          name: firstTemplate.name,
+          price: firstTemplate.price
+        };
+      }
+    });
+
+    setSelectedComponents(initialComponents);
+  }, [categoryContracts.map(c => c.templates[0]?.id).join(',')]);
+
+  const handleSelect = (category: ComponentCategory, component: ComponentInfo) => {
     setSelectedComponents((prev) => ({
       ...prev,
-      [category]: componentId,
+      [category]: component,
     }));
   };
 
@@ -62,8 +87,8 @@ const AvatarGenerator: FC = () => {
                   <ComponentSelector
                     key={category}
                     category={category}
-                    selectedId={selectedComponents[category]}
-                    onSelect={(componentId) => handleSelect(category, componentId)}
+                    selectedId={selectedComponents[category]?.id}
+                    onSelect={(component) => handleSelect(category, component)}
                   />
                 ))}
               </div>

@@ -1,7 +1,6 @@
 import { FC, useState } from 'react';
 import Image from 'next/image';
-import { AvatarState, ComponentCategory } from '../types';
-import { componentsByCategory } from './avatarComponents';
+import { AvatarState, ComponentCategory, ComponentInfo } from '../types';
 import { useAccount } from 'wagmi';
 import { useAvatarContract } from '../hooks/useAvatarContract';
 
@@ -10,35 +9,35 @@ const renderingCategories: ComponentCategory[] = ['background', 'body', 'hairsty
 
 interface AvatarEditorProps {
   selectedComponents: AvatarState;
-  onSelect: (category: ComponentCategory, componentId: string) => void;
+  onSelect: (category: ComponentCategory, component: ComponentInfo) => void;
 }
 
-const AvatarEditor: FC<AvatarEditorProps> = ({ selectedComponents, onSelect }) => {
+const AvatarEditor: FC<AvatarEditorProps> = ({
+  selectedComponents,
+  onSelect,
+}) => {
   const { isConnected } = useAccount();
   const { mint } = useAvatarContract(selectedComponents);
   const [isMinting, setIsMinting] = useState(false);
   const [mintError, setMintError] = useState<string | null>(null);
   const [mintSuccess, setMintSuccess] = useState(false);
 
-  const MINT_FEE = 10; // 0.10 MON in cents
-
-  const calculateTotalPrice = () => {
-    const componentsPrice = Object.entries(selectedComponents).reduce((total, [category, componentId]) => {
-      if (!componentId) return total;
-      const component = componentsByCategory[category as ComponentCategory]?.find(c => c.id === componentId);
-      return total + (component?.price || 0);
-    }, 0);
-    return (componentsPrice + MINT_FEE) / 100; // Convert cents to MON
-  };
-
-  const totalPrice = calculateTotalPrice();
+  const MINT_FEE = 0.1; // 0.10 MON
 
   const getMintButtonText = () => {
     if (!isConnected) return '🚀 CONNECT TO MINT';
     if (isMinting) return '🔥 MINTING...';
     if (mintSuccess) return '✨ MINTED!';
     if (mintError) return '💀 FAILED';
-    return `🐸 MINT NOW (${totalPrice.toFixed(2)} MON)`;
+    return `🐸 MINT NOW`;
+  };
+
+  const calculateTotalPrice = () => {
+    const componentsPrice = Object.values(selectedComponents).reduce((total, component) => {
+      if (!component?.id) return total;
+      return total + (Number(component.price || 0) / 1e18);
+    }, 0);
+    return (componentsPrice + MINT_FEE).toFixed(2);
   };
 
   const renderPreview = () => {
@@ -57,34 +56,14 @@ const AvatarEditor: FC<AvatarEditorProps> = ({ selectedComponents, onSelect }) =
     return (
       <div className="relative w-full aspect-square">
         {renderingCategories.map((category) => {
-          const componentId = selectedComponents[category];
-          if (!componentId) {
-            // Use default component if available
-            const defaultComponent = componentsByCategory[category]?.[0];
-            if (defaultComponent && category === 'body') {
-              return (
-                <Image
-                  key={category}
-                  src={defaultComponent.imageUrl}
-                  alt={category}
-                  fill
-                  className="object-contain absolute inset-0"
-                  style={{ zIndex: getZIndex(category) }}
-                  priority={category === 'body'}
-                />
-              );
-            }
-            return null;
-          }
-
-          const component = componentsByCategory[category]?.find(c => c.id === componentId);
+          const component = selectedComponents[category];
           if (!component) return null;
 
           return (
             <Image
               key={category}
-              src={component.imageUrl}
-              alt={category}
+              src={component.image}
+              alt={component.name || category}
               fill
               className="object-contain absolute inset-0"
               style={{ zIndex: getZIndex(category) }}
@@ -94,7 +73,7 @@ const AvatarEditor: FC<AvatarEditorProps> = ({ selectedComponents, onSelect }) =
         })}
       </div>
     );
-  };
+  }
 
   const handleMint = async () => {
     if (!mint) return;
@@ -137,6 +116,12 @@ const AvatarEditor: FC<AvatarEditorProps> = ({ selectedComponents, onSelect }) =
         {getMintButtonText()}
       </button>
 
+      <div className="text-center text-sm">
+        <span className="text-purple-600 font-bold">Total Price: {calculateTotalPrice()} MON</span>
+        <br />
+        <span className="text-purple-400 text-xs">(Including {MINT_FEE} MON mint fee)</span>
+      </div>
+
       {mintError && (
         <p className="text-red-500 text-sm font-black uppercase">
           Error: {mintError}
@@ -144,6 +129,6 @@ const AvatarEditor: FC<AvatarEditorProps> = ({ selectedComponents, onSelect }) =
       )}
     </div>
   );
-};
+}
 
 export default AvatarEditor; 

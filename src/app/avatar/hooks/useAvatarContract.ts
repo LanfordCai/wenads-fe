@@ -9,15 +9,15 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
   const { writeContract } = useWriteContract();
 
   const mint = async () => {
-    const componentArray = Object.entries(selectedComponents).map(
-      ([category, id]) => `${category}:${id}`
+    const componentIds = Object.values(selectedComponents).map(
+      component => component?.id || '0'
     );
     
     return writeContract({
       address: CONTRACT_ADDRESS,
       abi: WeNadsAvatarABI,
       functionName: 'mintAvatar',
-      args: [componentArray],
+      args: [componentIds],
     });
   };
 
