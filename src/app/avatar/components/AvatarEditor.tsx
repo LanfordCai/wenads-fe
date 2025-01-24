@@ -1,4 +1,4 @@
-import { FC, useState } from 'react';
+import { FC, useState, useMemo } from 'react';
 import Image from 'next/image';
 import { AvatarState, ComponentCategory, ComponentInfo } from '../types';
 import { useAccount } from 'wagmi';
@@ -10,23 +10,39 @@ const renderingCategories: ComponentCategory[] = ['background', 'body', 'hairsty
 interface AvatarEditorProps {
   selectedComponents: AvatarState;
   onSelect: (category: ComponentCategory, component: ComponentInfo) => void;
+  hasNFT: boolean;
 }
 
 const AvatarEditor: FC<AvatarEditorProps> = ({
   selectedComponents,
   onSelect,
+  hasNFT,
 }) => {
   const { isConnected } = useAccount();
-  const { mint } = useAvatarContract(selectedComponents);
+  const { mint, changeComponent, avatar, templates } = useAvatarContract(selectedComponents);
   const [isMinting, setIsMinting] = useState(false);
   const [mintError, setMintError] = useState<string | null>(null);
   const [mintSuccess, setMintSuccess] = useState(false);
+
+  // Check if there are any actual changes to apply
+  const hasChanges = useMemo(() => {
+    if (!hasNFT || !templates) return true;
+
+    return Object.entries(selectedComponents).some(([category, component]) => {
+      if (category === 'body') return false;
+      if (!component) return false;
+
+      const currentTemplateId = templates[category as keyof typeof templates];
+      return currentTemplateId?.toString() !== component.id;
+    });
+  }, [hasNFT, templates, selectedComponents]);
 
   const getMintButtonText = () => {
     if (!isConnected) return '🚀 CONNECT TO MINT';
     if (isMinting) return '🔥 MINTING...';
     if (mintSuccess) return '✨ MINTED!';
     if (mintError) return '💀 FAILED';
+    if (hasNFT) return hasChanges ? '🎨 CHANGE ITEMS' : '✨ NO CHANGES';
     return `🐸 MINT NOW`;
   };
 
@@ -74,44 +90,65 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
   }
 
   const handleMint = async () => {
-    if (!mint) return;
+    if (!mint || !changeComponent) return;
     
     try {
       setIsMinting(true);
       setMintError(null);
       setMintSuccess(false);
       
-      // Start the transaction
-      const response = await mint();
-      
-      // Keep checking transaction status
-      const checkInterval = setInterval(async () => {
-        try {
-          const provider = window.ethereum;
-          if (!provider) return;
-          
-          const txReceipt = await provider.request({
-            method: 'eth_getTransactionReceipt',
-            params: [response],
-          });
-
-          if (txReceipt) {
-            clearInterval(checkInterval);
-            if (txReceipt.status === '0x1') {
-              setMintSuccess(true);
-            } else {
-              setMintError('Transaction failed');
-            }
-            setIsMinting(false);
-          }
-        } catch (error) {
-          console.error('Error checking transaction:', error);
+      if (hasNFT) {
+        if (!hasChanges) {
+          setMintError('No changes to apply');
+          setIsMinting(false);
+          return;
         }
-      }, 1000);
 
-      // Clear interval after 2 minutes to prevent infinite checking
-      setTimeout(() => clearInterval(checkInterval), 120000);
+        // Apply changes for each changed component
+        const promises = Object.entries(selectedComponents).map(async ([category, component]) => {
+          if (category === 'body') return;
+          if (!component) return;
 
+          const currentTemplateId = templates[category as keyof typeof templates];
+          if (currentTemplateId?.toString() === component.id) return;
+
+          return changeComponent(category, component.id);
+        });
+
+        await Promise.all(promises.filter(Boolean));
+        setMintSuccess(true);
+      } else {
+        // Start the transaction
+        const response = await mint();
+        
+        // Keep checking transaction status
+        const checkInterval = setInterval(async () => {
+          try {
+            const provider = window.ethereum;
+            if (!provider) return;
+            
+            const txReceipt = await provider.request({
+              method: 'eth_getTransactionReceipt',
+              params: [response],
+            });
+
+            if (txReceipt) {
+              clearInterval(checkInterval);
+              if (txReceipt.status === '0x1') {
+                setMintSuccess(true);
+              } else {
+                setMintError('Transaction failed');
+              }
+              setIsMinting(false);
+            }
+          } catch (error) {
+            console.error('Error checking transaction:', error);
+          }
+        }, 1000);
+
+        // Clear interval after 2 minutes to prevent infinite checking
+        setTimeout(() => clearInterval(checkInterval), 120000);
+      }
     } catch (err) {
       console.error('Failed to mint:', err);
       setMintError(err instanceof Error ? err.message : 'Failed to mint avatar');
@@ -127,11 +164,11 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
 
       <button
         onClick={handleMint}
-        disabled={!isConnected || isMinting || mintSuccess || !mint}
+        disabled={!isConnected || isMinting || mintSuccess || !mint || (hasNFT && !hasChanges)}
         className={`
           w-full max-w-[400px] py-3 px-4 rounded-xl font-black text-center uppercase transition-all
           border-4 
-          ${!isConnected || !mint
+          ${!isConnected || !mint || (hasNFT && !hasChanges)
             ? 'bg-purple-200 text-purple-400 border-purple-300 cursor-not-allowed'
             : mintSuccess
               ? 'bg-green-500 text-white border-green-600 shadow-[4px_4px_0px_0px_#166534]'
@@ -155,6 +192,6 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
       )}
     </div>
   );
-}
+};
 
 export default AvatarEditor; 

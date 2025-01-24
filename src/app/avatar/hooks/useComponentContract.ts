@@ -1,9 +1,7 @@
 import { useReadContract } from 'wagmi';
 import WeNadsComponentABI from '@/contracts/abis/WeNadsComponent.json';
 import { ComponentCategory } from '../types';
-
-// TODO: Replace with actual contract address
-const CONTRACT_ADDRESS = '0xE3086f80e93E2e602Cb7Ab092eF1599F82c56FBB';
+import { CONTRACT_ADDRESSES } from '@/contracts/config';
 
 // Map our UI categories to contract enum values
 const categoryToEnum: Record<ComponentCategory, number> = {
@@ -30,14 +28,14 @@ interface Template {
 
 export const useComponentContract = (category: ComponentCategory) => {
   const { data: templateIds = [] } = useReadContract({
-    address: CONTRACT_ADDRESS,
+    address: CONTRACT_ADDRESSES.COMPONENT,
     abi: WeNadsComponentABI,
     functionName: 'getTemplatesOfType',
     args: [categoryToEnum[category]],
   }) as { data: bigint[] | undefined };
 
   const { data: templates = [] } = useReadContract({
-    address: CONTRACT_ADDRESS,
+    address: CONTRACT_ADDRESSES.COMPONENT,
     abi: WeNadsComponentABI,
     functionName: 'getTemplates',
     args: [templateIds],

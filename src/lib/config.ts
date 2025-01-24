@@ -30,7 +30,31 @@ export const monadDevnet = {
   },
 } as const satisfies Chain;
 
-const supportedChains: Chain[] = [monadDevnet];
+export const hardhatLocal = {
+  id: 31337,
+  name: 'Hardhat Local',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'Ethereum',
+    symbol: 'ETH',
+  },
+  rpcUrls: {
+    default: {
+      http: ['http://127.0.0.1:8545'],
+    },
+    public: {
+      http: ['http://127.0.0.1:8545'],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: 'Hardhat Local Explorer',
+      url: 'http://localhost:8545',
+    },
+  },
+} as const satisfies Chain;
+
+const supportedChains: Chain[] = [hardhatLocal];
 
 export const config = getDefaultConfig({
   appName: "WalletConnection",

@@ -401,6 +401,44 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_avatarId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_backgroundId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_headId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_eyesId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_mouthId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_accessoryId",
+          "type": "uint256"
+        }
+      ],
+      "name": "changeComponents",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "componentContract",
       "outputs": [

@@ -18,6 +18,7 @@ const ComponentSelector: FC<ComponentSelectorProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
+  const [clickStartX, setClickStartX] = useState(0);
   
   const { templates, templateIds } = useComponentContract(category);
 
@@ -26,11 +27,10 @@ const ComponentSelector: FC<ComponentSelectorProps> = ({
   };
 
   const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
-    if (!(e.target as HTMLElement).closest('.component-button')) {
-      setIsDragging(true);
-      setStartX(e.pageX - scrollContainerRef.current!.offsetLeft);
-      setScrollLeft(scrollContainerRef.current!.scrollLeft);
-    }
+    setIsDragging(true);
+    setStartX(e.pageX - scrollContainerRef.current!.offsetLeft);
+    setScrollLeft(scrollContainerRef.current!.scrollLeft);
+    setClickStartX(e.pageX);
   };
 
   const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
@@ -41,8 +41,26 @@ const ComponentSelector: FC<ComponentSelectorProps> = ({
     scrollContainerRef.current!.scrollLeft = scrollLeft - walk;
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e: MouseEvent<HTMLDivElement>) => {
     setIsDragging(false);
+    // Only trigger click if it's a small movement (not a drag)
+    const moveDistance = Math.abs(e.pageX - clickStartX);
+    if (moveDistance < 5 && e.target instanceof HTMLElement) {
+      const button = e.target.closest('button');
+      if (button) {
+        const templateId = button.getAttribute('data-template-id');
+        const template = templates.find(t => t.id.toString() === templateId);
+        if (template) {
+          const componentInfo: ComponentInfo = {
+            id: template.id.toString(),
+            image: template.image,
+            name: template.name,
+            price: template.price
+          };
+          onSelect(componentInfo);
+        }
+      }
+    }
   };
 
   const handleMouseLeave = () => {
@@ -70,18 +88,11 @@ const ComponentSelector: FC<ComponentSelectorProps> = ({
         >
           <div className="flex gap-3 p-2 min-w-min">
             {templates.map((template) => {
-              const componentInfo: ComponentInfo = {
-                id: template.id.toString(),
-                image: template.image,
-                name: template.name,
-                price: template.price
-              };
-              
               return (
                 <div key={template.id.toString()} className="flex flex-col">
                   <div className="group">
                     <button
-                      onClick={() => onSelect(componentInfo)}
+                      data-template-id={template.id.toString()}
                       className={`
                         component-button relative
                         flex-shrink-0 w-20 h-20 rounded-xl transition-all bg-white
@@ -98,13 +109,6 @@ const ComponentSelector: FC<ComponentSelectorProps> = ({
                         fill
                         className="object-contain p-1 pointer-events-none"
                       />
-                      <div className="hidden group-hover:block absolute top-0 left-24 min-w-max">
-                        <div className="bg-[#8B5CF6] text-white text-sm rounded-lg px-3 py-2 shadow-lg">
-                          <div className="font-bold mb-1">{template.name}</div>
-                          <div>Supply: {template.currentSupply.toString()}/{template.maxSupply.toString()}</div>
-                          <div className="absolute top-1/2 -translate-y-1/2 left-[-8px] w-0 h-0 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent border-r-[8px] border-r-[#8B5CF6]"></div>
-                        </div>
-                      </div>
                     </button>
                   </div>
                   <div className="mt-1 text-center bg-purple-100 text-[#8B5CF6] text-xs font-bold py-1 px-2 rounded-lg">

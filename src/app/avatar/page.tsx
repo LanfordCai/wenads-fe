@@ -1,6 +1,6 @@
 'use client';
 
-import { FC, useState, useEffect } from 'react';
+import { FC, useState, useEffect, useRef } from 'react';
 import AvatarEditor from './components/AvatarEditor';
 import ComponentSelector from './components/ComponentSelector';
 import { ComponentCategory, AvatarState, ComponentInfo, WeNadsAvatar } from './types';
@@ -15,14 +15,24 @@ const categories: ComponentCategory[] = ['background', 'hairstyle', 'eyes', 'mou
 const AvatarGenerator: FC = () => {
   const [selectedComponents, setSelectedComponents] = useState<AvatarState>({});
   const { hasNFT, avatar, isLoading, templates: avatarTemplates } = useAvatarContract(selectedComponents);
+  const initializedRef = useRef(false);
 
   // Get first component from each category
   const categoryContracts = categories.map(category => useComponentContract(category));
   const allTemplatesLoaded = categoryContracts.every(contract => contract.templates.length > 0);
 
   useEffect(() => {
-    // Only set components if we have loaded templates
-    if (!allTemplatesLoaded || isLoading) return;
+    console.log("hasNFT", hasNFT);
+    console.log("allTemplatesLoaded", allTemplatesLoaded);
+    console.log("initializedRef.current", initializedRef.current);
+    console.log("isLoading", isLoading);
+      console.log("avatarTemplates", avatarTemplates);
+    // Only set components if we have loaded templates and haven't initialized yet
+    if ((!hasNFT && !allTemplatesLoaded) || initializedRef.current) return;
+
+    // If still loading NFT status, wait
+    if (isLoading) return;
+      console.log("avatarTemplates2", avatarTemplates);
 
     const initialComponents: AvatarState = {
       body: {
@@ -33,44 +43,55 @@ const AvatarGenerator: FC = () => {
       }
     };
 
-    console.log("avatarTemplates", avatarTemplates);
-    console.log("avatar", avatar);
-
     // If user has NFT and we have the avatar data, use those components
-    if (hasNFT && avatar && avatarTemplates.background && avatarTemplates.hairstyle && avatarTemplates.eyes && avatarTemplates.mouth && avatarTemplates.flower) {
-      console.log("avatarTemplates", avatarTemplates);
+    if (hasNFT && avatar) {
+      // Wait for all template IDs to be loaded
+      if (!avatarTemplates.background || !avatarTemplates.hairstyle || 
+          !avatarTemplates.eyes || !avatarTemplates.mouth || 
+          !avatarTemplates.flower) {
+        return;
+      }
+
+
       // Map the component IDs to their full info
       categories.forEach((category, index) => {
         const contract = categoryContracts[index];
-        const template = contract.templates.find(t => {
-          const templateId = t.id.toString();
-          switch (category) {
-            case 'background':
-              return templateId === avatarTemplates.background.toString();
-            case 'hairstyle':
-              return templateId === avatarTemplates.hairstyle.toString();
-            case 'eyes':
-              return templateId === avatarTemplates.eyes.toString();
-            case 'mouth':
-              return templateId === avatarTemplates.mouth.toString();
-            case 'flower':
-              return templateId === avatarTemplates.flower.toString();
-            default:
-              return false;
-          }
-        });
+        let templateId: bigint | undefined;
 
-        if (template) {
-          initialComponents[category] = {
-            id: template.id.toString(),
-            image: template.image,
-            name: template.name,
-            price: template.price
-          };
+        switch (category) {
+          case 'background':
+            templateId = avatarTemplates.background;
+            break;
+          case 'hairstyle':
+            templateId = avatarTemplates.hairstyle;
+            break;
+          case 'eyes':
+            templateId = avatarTemplates.eyes;
+            break;
+          case 'mouth':
+            templateId = avatarTemplates.mouth;
+            break;
+          case 'flower':
+            templateId = avatarTemplates.flower;
+            break;
+        }
+        
+        if (templateId) {
+          const template = contract.templates.find(t => t.id.toString() === templateId?.toString());
+          if (template) {
+            initialComponents[category] = {
+              id: template.id.toString(),
+              image: template.image,
+              name: template.name,
+              price: template.price
+            };
+          }
         }
       });
-    } else if (!hasNFT) {
-      // Only set default components if user doesn't have NFT
+      initializedRef.current = true;
+    } else if (!hasNFT && allTemplatesLoaded) {
+      console.log("setting default components");
+      // Set default components for users without NFT
       categoryContracts.forEach((contract, index) => {
         const category = categories[index];
         const firstTemplate = contract.templates[0];
@@ -83,15 +104,13 @@ const AvatarGenerator: FC = () => {
           };
         }
       });
+      initializedRef.current = true;
     }
 
     setSelectedComponents(initialComponents);
-  }, [allTemplatesLoaded, hasNFT, avatar, isLoading]);
+  }, [allTemplatesLoaded, hasNFT, avatar, isLoading, avatarTemplates]);
 
   const handleSelect = (category: ComponentCategory, component: ComponentInfo) => {
-    // Don't allow changes if user has NFT
-    if (hasNFT) return;
-
     setSelectedComponents((prev) => ({
       ...prev,
       [category]: component,
@@ -128,7 +147,11 @@ const AvatarGenerator: FC = () => {
             <div className="order-1 lg:order-2 bg-purple-50 rounded-xl shadow-[8px_8px_0px_0px_#8B5CF6] p-6 lg:sticky lg:top-28 lg:h-fit border-4 border-[#8B5CF6]">
               <h2 className="text-2xl font-black mb-4 text-purple-900">Preview</h2>
               <div className="max-w-[500px] mx-auto">
-                <AvatarEditor selectedComponents={selectedComponents} onSelect={handleSelect} />
+                <AvatarEditor 
+                  selectedComponents={selectedComponents} 
+                  onSelect={handleSelect}
+                  hasNFT={hasNFT}
+                />
               </div>
             </div>
 
