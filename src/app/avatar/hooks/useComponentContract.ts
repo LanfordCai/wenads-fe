@@ -1,4 +1,5 @@
-import { useReadContract } from 'wagmi';
+import { useEffect, useState } from 'react';
+import { useReadContract, useWriteContract } from 'wagmi';
 import WeNadsComponentABI from '@/contracts/abis/WeNadsComponent.json';
 import { ComponentCategory } from '../types';
 import { CONTRACT_ADDRESSES } from '@/contracts/config';
@@ -27,31 +28,58 @@ interface Template {
 }
 
 export const useComponentContract = (category: ComponentCategory) => {
-  const { data: templateIds = [] } = useReadContract({
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [templateIds, setTemplateIds] = useState<bigint[]>([]);
+  const { writeContractAsync } = useWriteContract();
+
+  const { data: templateIdsData = [] } = useReadContract({
     address: CONTRACT_ADDRESSES.COMPONENT,
     abi: WeNadsComponentABI,
     functionName: 'getTemplatesOfType',
     args: [categoryToEnum[category]],
   }) as { data: bigint[] | undefined };
 
-  const { data: templates = [] } = useReadContract({
+  const { data: templatesData = [] } = useReadContract({
     address: CONTRACT_ADDRESSES.COMPONENT,
     abi: WeNadsComponentABI,
     functionName: 'getTemplates',
-    args: [templateIds],
+    args: [templateIdsData],
     query: {
-      enabled: templateIds.length > 0,
+      enabled: templateIdsData.length > 0,
     },
   }) as { data: Omit<Template, 'id' | 'image'>[] };
 
-  const fullTemplates= templates.map((template, index) => ({
+  const fullTemplates = templatesData.map((template, index) => ({
     ...template,
-    id: templateIds[index],
+    id: templateIdsData[index],
     image: `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA${template.imageData}`
   })).filter(template => template.isActive);
 
+  const createTemplate = async ({
+    _name,
+    _maxSupply,
+    _price,
+    _image,
+    value
+  }: {
+    _name: string;
+    _maxSupply: bigint;
+    _price: bigint;
+    _image: string;
+    value: bigint;
+  }) => {
+    return writeContractAsync({
+      address: CONTRACT_ADDRESSES.COMPONENT,
+      abi: WeNadsComponentABI,
+      functionName: 'createTemplate',
+      args: [_name, _maxSupply, _price, _image, categoryToEnum[category]],
+      value
+    });
+  };
+
   return {
     templates: fullTemplates,
-    templateIds,
+    templateIds: templateIdsData,
+    createTemplate,
   };
 }; 

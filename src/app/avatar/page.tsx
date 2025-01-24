@@ -8,6 +8,7 @@ import { ConnectBtn } from '../components/connectButton';
 import { useComponentContract } from './hooks/useComponentContract';
 import { useAvatarContract } from './hooks/useAvatarContract';
 import './styles.css';
+import NewTemplateModal from './components/NewTemplateModal';
 
 // Remove body from visible categories since it's always selected
 const categories: ComponentCategory[] = ['background', 'hairstyle', 'eyes', 'mouth', 'flower'];
@@ -16,6 +17,8 @@ const AvatarGenerator: FC = () => {
   const [selectedComponents, setSelectedComponents] = useState<AvatarState>({});
   const { hasNFT, avatar, isLoading, templates: avatarTemplates } = useAvatarContract(selectedComponents);
   const initializedRef = useRef(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<ComponentCategory | null>(null);
 
   // Get first component from each category
   const categoryContracts = categories.map(category => useComponentContract(category));
@@ -157,7 +160,15 @@ const AvatarGenerator: FC = () => {
 
             {/* Controls Section - Below preview on mobile */}
             <div className="order-2 lg:order-1 bg-purple-50 rounded-xl shadow-[8px_8px_0px_0px_#8B5CF6] p-6 border-4 border-[#8B5CF6] overflow-hidden">
-              <h2 className="text-2xl font-black mb-6 text-purple-900">Customize</h2>
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-black text-purple-900">Components</h2>
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="px-3 py-1 text-sm font-medium text-purple-600 border-2 border-purple-600 rounded-md hover:bg-purple-100"
+                >
+                  + New
+                </button>
+              </div>
               <div className="space-y-8 max-h-[calc(100vh-12rem)] overflow-y-auto pr-2 scrollbar-hide">
                 {categories.map((category) => (
                   <ComponentSelector
@@ -169,6 +180,11 @@ const AvatarGenerator: FC = () => {
                 ))}
               </div>
             </div>
+
+            <NewTemplateModal
+              isOpen={isModalOpen}
+              onClose={() => setIsModalOpen(false)}
+            />
           </div>
         </div>
       </div>

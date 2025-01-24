@@ -75,6 +75,7 @@ const ComponentSelector: FC<ComponentSelectorProps> = ({
           {templateIds.length}
         </span>
       </h3>
+
       <div className="relative">
         {/* Scrollable container */}
         <div 
