@@ -77,10 +77,12 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
   };
 
   const calculateTotalPrice = () => {
-    return Object.values(selectedComponents).reduce(
+    const total = Object.values(selectedComponents).reduce(
       (sum, component) => sum + (component?.price || BigInt(0)),
       BigInt(0)
     );
+    // Convert from wei to MON and format with 2 decimal places
+    return (Number(total) / 1e18).toFixed(2);
   };
 
   const renderPreview = () => {
