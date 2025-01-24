@@ -7,6 +7,15 @@ export interface ComponentInfo {
   price: bigint;
 }
 
+export interface WeNadsAvatar {
+  backgroundId: bigint;
+  headId: bigint;
+  eyesId: bigint;
+  mouthId: bigint;
+  accessoryId: bigint;
+  name: string;
+}
+
 export interface AvatarComponent {
   id: string;
   category: ComponentCategory;

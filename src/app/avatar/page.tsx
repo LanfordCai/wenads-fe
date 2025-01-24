@@ -3,9 +3,10 @@
 import { FC, useState, useEffect } from 'react';
 import AvatarEditor from './components/AvatarEditor';
 import ComponentSelector from './components/ComponentSelector';
-import { ComponentCategory, AvatarState, ComponentInfo } from './types';
+import { ComponentCategory, AvatarState, ComponentInfo, WeNadsAvatar } from './types';
 import { ConnectBtn } from '../components/connectButton';
 import { useComponentContract } from './hooks/useComponentContract';
+import { useAvatarContract } from './hooks/useAvatarContract';
 import './styles.css';
 
 // Remove body from visible categories since it's always selected
@@ -13,13 +14,15 @@ const categories: ComponentCategory[] = ['background', 'hairstyle', 'eyes', 'mou
 
 const AvatarGenerator: FC = () => {
   const [selectedComponents, setSelectedComponents] = useState<AvatarState>({});
+  const { hasNFT, avatar, isLoading, templates: avatarTemplates } = useAvatarContract(selectedComponents);
 
   // Get first component from each category
   const categoryContracts = categories.map(category => useComponentContract(category));
+  const allTemplatesLoaded = categoryContracts.every(contract => contract.templates.length > 0);
 
   useEffect(() => {
     // Only set components if we have loaded templates
-    if (!categoryContracts.every(contract => contract.templates.length > 0)) return;
+    if (!allTemplatesLoaded || isLoading) return;
 
     const initialComponents: AvatarState = {
       body: {
@@ -30,28 +33,77 @@ const AvatarGenerator: FC = () => {
       }
     };
 
-    categoryContracts.forEach((contract, index) => {
-      const category = categories[index];
-      const firstTemplate = contract.templates[0];
-      if (firstTemplate) {
-        initialComponents[category] = {
-          id: firstTemplate.id.toString(),
-          image: firstTemplate.image,
-          name: firstTemplate.name,
-          price: firstTemplate.price
-        };
-      }
-    });
+    console.log(avatar);
+
+    // If user has NFT and we have the avatar data, use those components
+    if (hasNFT && avatar) {
+      console.log(avatarTemplates);
+      // Map the component IDs to their full info
+      categories.forEach((category, index) => {
+        const contract = categoryContracts[index];
+        const template = contract.templates.find(t => {
+          const templateId = t.id.toString();
+          switch (category) {
+            case 'background':
+              return templateId === avatarTemplates.background.toString();
+            case 'hairstyle':
+              return templateId === avatarTemplates.hairstyle.toString();
+            case 'eyes':
+              return templateId === avatarTemplates.eyes.toString();
+            case 'mouth':
+              return templateId === avatarTemplates.mouth.toString();
+            case 'flower':
+              return templateId === avatarTemplates.flower.toString();
+            default:
+              return false;
+          }
+        });
+
+        if (template) {
+          initialComponents[category] = {
+            id: template.id.toString(),
+            image: template.image,
+            name: template.name,
+            price: template.price
+          };
+        }
+      });
+    } else if (!hasNFT) {
+      // Only set default components if user doesn't have NFT
+      categoryContracts.forEach((contract, index) => {
+        const category = categories[index];
+        const firstTemplate = contract.templates[0];
+        if (firstTemplate) {
+          initialComponents[category] = {
+            id: firstTemplate.id.toString(),
+            image: firstTemplate.image,
+            name: firstTemplate.name,
+            price: firstTemplate.price
+          };
+        }
+      });
+    }
 
     setSelectedComponents(initialComponents);
-  }, [categoryContracts.map(c => c.templates[0]?.id).join(',')]);
+  }, [allTemplatesLoaded, hasNFT, avatar, isLoading]);
 
   const handleSelect = (category: ComponentCategory, component: ComponentInfo) => {
+    // Don't allow changes if user has NFT
+    if (hasNFT) return;
+
     setSelectedComponents((prev) => ({
       ...prev,
       [category]: component,
     }));
   };
+
+  if (isLoading || !allTemplatesLoaded) {
+    return (
+      <div className="min-h-screen bg-purple-100 flex items-center justify-center">
+        <div className="text-2xl font-black text-purple-600">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-purple-100 flex flex-col">
