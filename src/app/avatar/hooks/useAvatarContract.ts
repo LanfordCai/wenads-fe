@@ -5,8 +5,8 @@ import WeNadsComponentABI from '@/contracts/abis/WeNadsComponent.json';
 import { monadDevnet } from '@/lib/config';
 
 // TODO: Replace with actual contract address
-const CONTRACT_ADDRESS = '0xE387B6860067D97107122D2Dc90e546529484b27';
-const COMPONENT_CONTRACT = '0xE3086f80e93E2e602Cb7Ab092eF1599F82c56FBB';
+const CONTRACT_ADDRESS = '0xA687aC47e181d5Eddd0539335b306520fb72E09C';
+const COMPONENT_CONTRACT = '0x5F60261add3dAc40496f353268E4B9fa5E8e3ECd';
 
 export const useAvatarContract = (selectedComponents: AvatarState) => {
   const { address } = useAccount();
@@ -43,7 +43,7 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
   const { data: avatar } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: WeNadsAvatarABI,
-    functionName: 'avatars',
+    functionName: 'getAvatar',
     args: [tokenId],
     chainId: monadDevnet.id,
     query: {
@@ -55,7 +55,7 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
   const { data: backgroundTemplate } = useReadContract({
     address: COMPONENT_CONTRACT,
     abi: WeNadsComponentABI,
-    functionName: 'tokenTemplate',
+    functionName: 'getTokenTemplate',
     args: [avatar?.backgroundId],
     chainId: monadDevnet.id,
     query: {
@@ -66,7 +66,7 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
   const { data: hairstyleTemplate } = useReadContract({
     address: COMPONENT_CONTRACT,
     abi: WeNadsComponentABI,
-    functionName: 'tokenTemplate',
+    functionName: 'getTokenTemplate',
     args: [avatar?.headId],
     query: {
       enabled: !!avatar?.headId,
@@ -76,7 +76,7 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
   const { data: eyesTemplate } = useReadContract({
     address: COMPONENT_CONTRACT,
     abi: WeNadsComponentABI,
-    functionName: 'tokenTemplate',
+    functionName: 'getTokenTemplate',
     args: [avatar?.eyesId],
     query: {
       enabled: !!avatar?.eyesId,
@@ -86,7 +86,7 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
   const { data: mouthTemplate } = useReadContract({
     address: COMPONENT_CONTRACT,
     abi: WeNadsComponentABI,
-    functionName: 'tokenTemplate',
+    functionName: 'getTokenTemplate',
     args: [avatar?.mouthId],
     query: {
       enabled: !!avatar?.mouthId,
@@ -96,12 +96,18 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
   const { data: flowerTemplate } = useReadContract({
     address: COMPONENT_CONTRACT,
     abi: WeNadsComponentABI,
-    functionName: 'tokenTemplate',
+    functionName: 'getTokenTemplate',
     args: [avatar?.accessoryId],
     query: {
       enabled: !!avatar?.accessoryId,
     }
   }) as { data: bigint };
+
+  console.log("backgroundTemplate", backgroundTemplate);
+  console.log("hairstyleTemplate", hairstyleTemplate);
+  console.log("eyesTemplate", eyesTemplate);
+  console.log("mouthTemplate", mouthTemplate);
+  console.log("flowerTemplate", flowerTemplate);
 
   const templates = {
     background: backgroundTemplate,

@@ -33,11 +33,12 @@ const AvatarGenerator: FC = () => {
       }
     };
 
-    console.log(avatar);
+    console.log("avatarTemplates", avatarTemplates);
+    console.log("avatar", avatar);
 
     // If user has NFT and we have the avatar data, use those components
-    if (hasNFT && avatar) {
-      console.log(avatarTemplates);
+    if (hasNFT && avatar && avatarTemplates.background && avatarTemplates.hairstyle && avatarTemplates.eyes && avatarTemplates.mouth && avatarTemplates.flower) {
+      console.log("avatarTemplates", avatarTemplates);
       // Map the component IDs to their full info
       categories.forEach((category, index) => {
         const contract = categoryContracts[index];
