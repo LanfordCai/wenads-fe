@@ -19,7 +19,7 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
   hasNFT,
 }) => {
   const { isConnected } = useAccount();
-  const { mint, changeComponents, avatar, templates } = useAvatarContract(selectedComponents);
+  const { mint, changeComponents, avatar, templates, nftStatus, isLoading } = useAvatarContract(selectedComponents);
   const [isMinting, setIsMinting] = useState(false);
   const [mintError, setMintError] = useState<string | null>(null);
   const [mintSuccess, setMintSuccess] = useState(false);
@@ -32,7 +32,7 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
 
   // Check if there are any actual changes to apply
   const hasChanges = useMemo(() => {
-    if (!hasNFT || !templates) return true;
+    if (nftStatus !== 'has_nft' || !templates) return true;
 
     return Object.entries(selectedComponents).some(([category, component]) => {
       if (category === 'body') return false;
@@ -41,20 +41,21 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
       const currentTemplateId = templates[category];
       return currentTemplateId?.toString() !== component.id;
     });
-  }, [hasNFT, templates, selectedComponents]);
+  }, [nftStatus, templates, selectedComponents]);
 
   const getMintButtonText = () => {
     if (!isConnected) return '🚀 CONNECT TO MINT';
+    if (isLoading) return '⌛ LOADING...';
     if (isMinting) {
-      if (hasNFT) return '🔥 CHANGING...';
+      if (nftStatus === 'has_nft') return '🔥 CHANGING...';
       return '🔥 MINTING...';
     }
     if (mintSuccess) {
-      if (hasNFT) return '✨ CHANGED!';
+      if (nftStatus === 'has_nft') return '✨ CHANGED!';
       return '✨ MINTED!';
     }
     if (mintError) return '💀 FAILED';
-    if (hasNFT) return hasChanges ? '🎨 CHANGE ITEMS' : '✨ NO CHANGES';
+    if (nftStatus === 'has_nft') return hasChanges ? '🎨 CHANGE ITEMS' : '✨ NO CHANGES';
     return `🐸 MINT NOW`;
   };
 
@@ -67,6 +68,21 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
   };
 
   const renderPreview = () => {
+    // If we have an NFT and it's still loading, show loading state
+    if (nftStatus === 'has_nft' && isLoading) {
+      return (
+        <div className="flex items-center justify-center w-full h-full">
+          <div className="text-2xl font-bold text-purple-600">Loading...</div>
+        </div>
+      );
+    }
+
+    // If we have an NFT, only show components when avatar data is loaded
+    if (nftStatus === 'has_nft' && !avatar) {
+      return null;
+    }
+
+    // Show default components for no NFT case
     const getZIndex = (cat: ComponentCategory) => {
       switch (cat) {
         case 'background': return 0;
@@ -99,7 +115,7 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
         })}
       </div>
     );
-  }
+  };
 
   const handleMint = async () => {
     if (!mint || !changeComponents) return;

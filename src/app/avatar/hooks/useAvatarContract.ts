@@ -5,14 +5,17 @@ import WeNadsComponentABI from '@/contracts/abis/WeNadsComponent.json';
 import { CONTRACT_ADDRESSES } from '@/contracts/config';
 import { useState, useEffect } from 'react';
 
+export type NFTStatus = 'loading' | 'no_nft' | 'has_nft';
+
 export const useAvatarContract = (selectedComponents: AvatarState) => {
   const { address } = useAccount();
   const { writeContractAsync } = useWriteContract();
   const publicClient = usePublicClient();
   const [currentTemplates, setCurrentTemplates] = useState<Record<string, bigint | undefined>>({});
+  const [nftStatus, setNftStatus] = useState<NFTStatus>('loading');
 
   // Check if user has a WeNads NFT
-  const { data: balance = BigInt(0) } = useReadContract({
+  const { data: balance = BigInt(0), isLoading: isBalanceLoading } = useReadContract({
     address: CONTRACT_ADDRESSES.AVATAR,
     abi: WeNadsAvatarABI,
     functionName: 'balanceOf',
@@ -20,12 +23,23 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
     query: {
       enabled: !!address,
     }
-  }) as { data: bigint };
+  }) as { data: bigint; isLoading: boolean };
 
-  const hasNFT = balance > BigInt(0);
+  // Update NFT status based on balance
+  useEffect(() => {
+    if (!address) {
+      setNftStatus('no_nft');
+    } else if (isBalanceLoading) {
+      setNftStatus('loading');
+    } else {
+      setNftStatus(balance > BigInt(0) ? 'has_nft' : 'no_nft');
+    }
+  }, [address, balance, isBalanceLoading]);
+
+  const hasNFT = nftStatus === 'has_nft';
 
   // Get user's WeNads if they have one
-  const { data: tokenId } = useReadContract({
+  const { data: tokenId, isLoading: isTokenIdLoading } = useReadContract({
     address: CONTRACT_ADDRESSES.AVATAR,
     abi: WeNadsAvatarABI,
     functionName: 'tokenOfOwnerByIndex',
@@ -33,10 +47,10 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
     query: {
       enabled: !!address && hasNFT,
     }
-  });
+  }) as { data: bigint | undefined; isLoading: boolean };
 
   // Get WeNads components
-  const { data: avatar } = useReadContract({
+  const { data: avatar, isLoading: isAvatarLoading } = useReadContract({
     address: CONTRACT_ADDRESSES.AVATAR,
     abi: WeNadsAvatarABI,
     functionName: 'getAvatar',
@@ -44,7 +58,7 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
     query: {
       enabled: !!tokenId,
     }
-  }) as { data: WeNadsAvatar };
+  }) as { data: WeNadsAvatar | undefined; isLoading: boolean };
 
   const fetchTemplates = async () => {
     if (!avatar || !publicClient) return;
@@ -344,7 +358,8 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
     changeComponents,
     hasNFT,
     avatar,
-    isLoading: !!address && (hasNFT && !avatar && !!tokenId),
+    nftStatus,
+    isLoading: nftStatus === 'loading' || (hasNFT && (isTokenIdLoading || isAvatarLoading)),
     templates: currentTemplates
   };
 }; 
