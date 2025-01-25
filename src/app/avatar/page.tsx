@@ -19,8 +19,22 @@ const AvatarGenerator: FC = () => {
   const initializedRef = useRef(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Get first component from each category
-  const categoryContracts = categories.map(category => useComponentContract(category));
+  // Move hooks to top level
+  const backgroundContract = useComponentContract('background');
+  const hairstyleContract = useComponentContract('hairstyle');
+  const eyesContract = useComponentContract('eyes');
+  const mouthContract = useComponentContract('mouth');
+  const flowerContract = useComponentContract('flower');
+
+  // Create an array of contracts in the same order as categories
+  const categoryContracts = [
+    backgroundContract,
+    hairstyleContract,
+    eyesContract,
+    mouthContract,
+    flowerContract
+  ];
+
   const allTemplatesLoaded = categoryContracts.every(contract => contract.templates.length > 0);
 
   useEffect(() => {
@@ -110,7 +124,7 @@ const AvatarGenerator: FC = () => {
     }
 
     setSelectedComponents(initialComponents);
-  }, [allTemplatesLoaded, hasNFT, avatar, isLoading, avatarTemplates]);
+  }, [allTemplatesLoaded, hasNFT, avatar, isLoading, avatarTemplates, categoryContracts]);
 
   const handleSelect = (category: ComponentCategory, component: ComponentInfo) => {
     setSelectedComponents((prev) => ({
@@ -150,7 +164,6 @@ const AvatarGenerator: FC = () => {
               <div className="max-w-[500px] mx-auto">
                 <AvatarEditor
                   selectedComponents={selectedComponents}
-                  onSelect={handleSelect}
                 />
               </div>
             </div>
