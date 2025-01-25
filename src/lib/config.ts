@@ -54,7 +54,7 @@ export const hardhatLocal = {
   },
 } as const satisfies Chain;
 
-const supportedChains: Chain[] = [hardhatLocal];
+const supportedChains: Chain[] = [monadDevnet];
 
 export const config = getDefaultConfig({
   appName: "WalletConnection",
