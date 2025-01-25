@@ -3,6 +3,9 @@
 import { FC } from 'react';
 import Image from 'next/image';
 import { formatEther } from 'viem';
+import { useAccount, useReadContract } from 'wagmi';
+import { CONTRACT_ADDRESSES } from '@/contracts/config';
+import WeNadsComponentABI from '@/contracts/abis/WeNadsComponent.json';
 
 interface TemplateDetailModalProps {
   template: {
@@ -19,6 +22,20 @@ interface TemplateDetailModalProps {
 }
 
 const TemplateDetailModal: FC<TemplateDetailModalProps> = ({ template, onClose }) => {
+  const { address } = useAccount();
+
+  const { data: userTokenId } = useReadContract({
+    address: CONTRACT_ADDRESSES.COMPONENT,
+    abi: WeNadsComponentABI,
+    functionName: 'getUserTemplateToken',
+    args: [address, template.id],
+    query: {
+      enabled: !!address,
+    }
+  }) as { data: bigint | undefined };
+
+  const hasTemplate = userTokenId && userTokenId > BigInt(0);
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 relative border-4 border-[#8B5CF6] shadow-[8px_8px_0px_0px_#5B21B6]">
@@ -68,6 +85,14 @@ const TemplateDetailModal: FC<TemplateDetailModalProps> = ({ template, onClose }
                   <div className={template.isActive ? "text-green-600" : "text-red-600"}>
                     {template.isActive ? "Active" : "Inactive"}
                   </div>
+                </div>
+              </div>
+
+              {/* Component Status */}
+              <div className="bg-purple-50 p-2 rounded-lg">
+                <div className="text-purple-600 font-bold">Component Status</div>
+                <div className={hasTemplate ? "text-green-600" : "text-purple-900"}>
+                  {hasTemplate ? "You have this component" : "You don't have this component"}
                 </div>
               </div>
             </div>
