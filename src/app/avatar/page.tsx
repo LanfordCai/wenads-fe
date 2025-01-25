@@ -149,10 +149,9 @@ const AvatarGenerator: FC = () => {
             {/* Preview Section - Always on top for mobile */}
             <div className="order-1 lg:order-2 bg-purple-50 rounded-xl shadow-[8px_8px_0px_0px_#8B5CF6] p-12 lg:sticky lg:top-28 lg:h-fit border-4 border-[#8B5CF6]">
               <div className="max-w-[500px] mx-auto">
-                <AvatarEditor 
-                  selectedComponents={selectedComponents} 
+                <AvatarEditor
+                  selectedComponents={selectedComponents}
                   onSelect={handleSelect}
-                  hasNFT={hasNFT}
                 />
               </div>
             </div>
