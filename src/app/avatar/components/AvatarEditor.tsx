@@ -11,18 +11,36 @@ const renderingCategories: ComponentCategory[] = ['background', 'body', 'hairsty
 interface AvatarEditorProps {
   selectedComponents: AvatarState;
   onSelect: (category: ComponentCategory, component: ComponentInfo) => void;
-  hasNFT: boolean;
 }
 
 const AvatarEditor: FC<AvatarEditorProps> = ({
   selectedComponents,
-  onSelect,
-  hasNFT,
+  onSelect: _onSelect,
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
-  const { mint, changeComponents, templates } = useAvatarContract(selectedComponents);
+  const { mint, changeComponents, burn, templates, nftStatus } = useAvatarContract(selectedComponents);
   const { showNotification } = useNotification();
   const { isConnected } = useAccount();
+  const [mintSuccess, setMintSuccess] = useState(false);
+
+  const hasNFT = nftStatus === 'has_nft';
+  const isLoading = nftStatus === 'loading';
+
+  // Reset mintSuccess after 2 seconds
+  useEffect(() => {
+    if (mintSuccess) {
+      const timer = setTimeout(() => {
+        setMintSuccess(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [mintSuccess]);
+
+  // Wrap onSelect to reset mintSuccess when a new component is selected
+  const handleSelect = (category: ComponentCategory, component: ComponentInfo) => {
+    setMintSuccess(false);
+    _onSelect(category, component);
+  };
 
   const degenPhrases = [
     '🫡 WAGMI SER',
@@ -49,6 +67,8 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
       if (hasNFT) return '🔥 CHANGING...';
       return '🔥 MINTING...';
     }
+    if (mintSuccess) return '✨ MINTED!';
+    if (isLoading) return '⌛ LOADING...';
     if (hasNFT) {
       return hasChanges ? '🔥 CHANGE ITEMS' : degenPhrases[Math.floor(Math.random() * degenPhrases.length)];
     }
@@ -86,7 +106,25 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
         showNotification('Minting avatar...', 'info');
         const hash = await mint();
         showNotification('Avatar minted successfully!', 'success');
+        setMintSuccess(true);
       }
+    } catch (err: any) {
+      showNotification(
+        err.message.includes('rejected') ? 'Transaction rejected by user' : err.message,
+        'error'
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleBurn = async () => {
+    try {
+      setIsProcessing(true);
+      showNotification('Burning avatar...', 'info');
+      const hash = await burn();
+      showNotification('Avatar burned successfully!', 'success');
+      setMintSuccess(false);
     } catch (err: any) {
       showNotification(
         err.message.includes('rejected') ? 'Transaction rejected by user' : err.message,
@@ -155,18 +193,37 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
 
       <button
         onClick={handleMint}
-        disabled={!isConnected || isProcessing || (hasNFT && !hasChanges)}
+        disabled={!isConnected || isProcessing || isLoading || (hasNFT && !hasChanges) || getMintButtonText() === '✨ MINTED!'}
         className={`
           w-full max-w-[400px] py-3 px-4 rounded-xl font-black text-center uppercase transition-all
           border-4 
-          ${!isConnected || (hasNFT && !hasChanges)
-            ? 'bg-purple-200 text-purple-400 border-purple-300 cursor-not-allowed'
-            : 'bg-[#8B5CF6] text-white border-[#7C3AED] shadow-[4px_4px_0px_0px_#5B21B6] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#5B21B6]'
+          ${getMintButtonText() === '✨ MINTED!'
+            ? 'bg-green-400 text-white border-green-500 shadow-[4px_4px_0px_0px_#16A34A] cursor-not-allowed'
+            : !isConnected || isLoading || (hasNFT && !hasChanges)
+              ? 'bg-purple-200 text-purple-400 border-purple-300 cursor-not-allowed'
+              : 'bg-[#8B5CF6] text-white border-[#7C3AED] shadow-[4px_4px_0px_0px_#5B21B6] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#5B21B6]'
           }
         `}
       >
         {getMintButtonText()}
       </button>
+
+      {hasNFT && (
+        <button
+          onClick={handleBurn}
+          disabled={!isConnected || isProcessing || isLoading}
+          className={`
+            w-full max-w-[400px] py-3 px-4 rounded-xl font-black text-center uppercase transition-all
+            border-4 
+            ${isProcessing || isLoading
+              ? 'bg-red-200 text-red-400 border-red-300 cursor-not-allowed'
+              : 'bg-red-500 text-white border-red-600 shadow-[4px_4px_0px_0px_#DC2626] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#DC2626]'
+            }
+          `}
+        >
+          {isProcessing ? '🔥 BURNING...' : isLoading ? '⌛ LOADING...' : '🔥 BURN NFT'}
+        </button>
+      )}
 
       <div className="text-center text-sm">
         <span className="text-purple-600 font-bold">Total Price: {calculateTotalPrice()} MON</span>

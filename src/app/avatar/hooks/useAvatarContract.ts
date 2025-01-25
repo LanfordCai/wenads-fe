@@ -204,6 +204,18 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
       value: totalPrice
     });
 
+    if (!hash) {
+      throw new Error('Failed to mint NFT');
+    }
+
+    // Wait for transaction confirmation
+    await publicClient?.waitForTransactionReceipt({ 
+      hash: hash
+    });
+
+    // Update NFT status
+    setNftStatus('has_nft');
+
     return hash;
   };
 
@@ -353,9 +365,37 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
     return [changeHash as `0x${string}`];
   };
 
+  const burn = async (): Promise<`0x${string}`> => {
+    if (!hasNFT || !tokenId) {
+      throw new Error('You must own a WeNads NFT to burn it');
+    }
+
+    const hash = await writeContractAsync({
+      address: CONTRACT_ADDRESSES.AVATAR,
+      abi: WeNadsAvatarABI,
+      functionName: 'burn',
+      args: [tokenId]
+    });
+
+    if (!hash) {
+      throw new Error('Failed to burn NFT');
+    }
+
+    // Wait for transaction confirmation
+    await publicClient?.waitForTransactionReceipt({ 
+      hash: hash
+    });
+
+    // Reset NFT status
+    setNftStatus('no_nft');
+
+    return hash;
+  };
+
   return { 
     mint,
     changeComponents,
+    burn,
     hasNFT,
     avatar,
     nftStatus,
