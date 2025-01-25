@@ -3,7 +3,7 @@
 import { FC, useState, useEffect, useRef } from 'react';
 import AvatarEditor from './components/AvatarEditor';
 import ComponentSelector from './components/ComponentSelector';
-import { ComponentCategory, AvatarState, ComponentInfo, WeNadsAvatar } from './types';
+import { ComponentCategory, AvatarState, ComponentInfo } from './types';
 import { ConnectBtn } from '../components/connectButton';
 import { useComponentContract } from './hooks/useComponentContract';
 import { useAvatarContract } from './hooks/useAvatarContract';
@@ -18,7 +18,6 @@ const AvatarGenerator: FC = () => {
   const { hasNFT, avatar, isLoading, templates: avatarTemplates } = useAvatarContract(selectedComponents);
   const initializedRef = useRef(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<ComponentCategory | null>(null);
 
   // Get first component from each category
   const categoryContracts = categories.map(category => useComponentContract(category));

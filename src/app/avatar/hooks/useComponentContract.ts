@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
 import { useReadContract, useWriteContract } from 'wagmi';
 import WeNadsComponentABI from '@/contracts/abis/WeNadsComponent.json';
-import { ComponentCategory } from '../types';
+import { ComponentCategory, Template } from '../types';
 import { CONTRACT_ADDRESSES } from '@/contracts/config';
 
 // Map our UI categories to contract enum values
@@ -14,22 +13,7 @@ const categoryToEnum: Record<ComponentCategory, number> = {
   body: 5
 };
 
-interface Template {
-  id: bigint,
-  name: string;
-  creator: string;
-  maxSupply: bigint;
-  currentSupply: bigint;
-  price: bigint;
-  imageData: string;
-  isActive: boolean;
-  componentType: number;
-  image: string;
-}
-
 export const useComponentContract = (category: ComponentCategory) => {
-  const [templates, setTemplates] = useState<any[]>([]);
-  const [templateIds, setTemplateIds] = useState<bigint[]>([]);
   const { writeContractAsync } = useWriteContract();
 
   const { data: templateIdsData = [] } = useReadContract({

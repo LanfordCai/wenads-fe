@@ -1,6 +1,6 @@
 import { FC, useRef, MouseEvent, useState } from 'react';
 import Image from 'next/image';
-import { ComponentCategory, ComponentInfo } from '../types';
+import { ComponentCategory, ComponentInfo, Template } from '../types';
 import { useComponentContract } from '../hooks/useComponentContract';
 import { useNotification } from '../../contexts/NotificationContext';
 import TemplateDetailModal from './TemplateDetailModal';
@@ -21,7 +21,7 @@ const ComponentSelector: FC<ComponentSelectorProps> = ({
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [clickStartX, setClickStartX] = useState(0);
-  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   
   const { templates, templateIds } = useComponentContract(category);
   const { showNotification } = useNotification();

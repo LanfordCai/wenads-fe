@@ -1,6 +1,6 @@
-import { FC, useState, useMemo, useEffect } from 'react';
+import { FC, useState, useEffect } from 'react';
 import Image from 'next/image';
-import { AvatarState, ComponentCategory, ComponentInfo } from '../types';
+import { AvatarState, ComponentCategory } from '../types';
 import { useAccount } from 'wagmi';
 import { useAvatarContract } from '../hooks/useAvatarContract';
 import { useNotification } from '../../contexts/NotificationContext';
@@ -11,12 +11,10 @@ const renderingCategories: ComponentCategory[] = ['background', 'body', 'hairsty
 
 interface AvatarEditorProps {
   selectedComponents: AvatarState;
-  onSelect: (category: ComponentCategory, component: ComponentInfo) => void;
 }
 
 const AvatarEditor: FC<AvatarEditorProps> = ({
   selectedComponents,
-  onSelect: _onSelect,
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const { mint, changeComponents, burn, templates, nftStatus } = useAvatarContract(selectedComponents);
@@ -36,12 +34,6 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
       return () => clearTimeout(timer);
     }
   }, [mintSuccess]);
-
-  // Wrap onSelect to reset mintSuccess when a new component is selected
-  const handleSelect = (category: ComponentCategory, component: ComponentInfo) => {
-    setMintSuccess(false);
-    _onSelect(category, component);
-  };
 
   const degenPhrases = [
     '🫡 WAGMI SER',
@@ -101,17 +93,19 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
         }, {} as Record<string, { id: string }>);
 
         showNotification('Changing components...', 'info');
-        const hash = await changeComponents(changedComponents, selectedComponents);
+        await changeComponents(changedComponents, selectedComponents);
         showNotification('Components changed successfully!', 'success');
       } else {
         showNotification('Minting avatar...', 'info');
-        const hash = await mint();
+        await mint();
         showNotification('Avatar minted successfully!', 'success');
         setMintSuccess(true);
       }
-    } catch (err: any) {
+    } catch (error: unknown) {
       showNotification(
-        err.message.includes('rejected') ? 'Transaction rejected by user' : err.message,
+        error instanceof Error && error.message.includes('rejected') 
+          ? 'Transaction rejected by user' 
+          : error instanceof Error ? error.message : 'An error occurred',
         'error'
       );
     } finally {
@@ -123,12 +117,14 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
     try {
       setIsProcessing(true);
       showNotification('Burning avatar...', 'info');
-      const hash = await burn();
+      await burn();
       showNotification('Avatar burned successfully!', 'success');
       setMintSuccess(false);
-    } catch (err: any) {
+    } catch (error: unknown) {
       showNotification(
-        err.message.includes('rejected') ? 'Transaction rejected by user' : err.message,
+        error instanceof Error && error.message.includes('rejected')
+          ? 'Transaction rejected by user'
+          : error instanceof Error ? error.message : 'An error occurred',
         'error'
       );
     } finally {
@@ -232,7 +228,7 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
 
       <div className="max-w-[600px] text-sm text-purple-700 bg-purple-50 p-4 rounded-xl border-2 border-purple-200">
         <p>
-        WeNads is a Soulbound Token (SBT) collection with a unique twist: each wallet address is entitled to only one NFT. Breaking away from traditional SBT constraints, WeNads empowers you to customize your avatar's components whenever inspiration strikes! What sets us apart? Each component exists as a tradeable NFT, and here's what makes it special: you can design, mint, and market your own component templates, fostering a genuinely community-driven ecosystem. Best of all, every asset lives permanently on-chain!🔥
+          WeNads is a Soulbound Token (SBT) collection with a unique twist: each wallet address is entitled to only one NFT. Breaking away from traditional SBT constraints, WeNads empowers you to customize your avatar&apos;s components whenever inspiration strikes! What sets us apart? Each component exists as a tradeable NFT, and here&apos;s what makes it special: you can design, mint, and market your own component templates, fostering a genuinely community-driven ecosystem. Best of all, every asset lives permanently on-chain!🔥
         </p>
       </div>
     </div>

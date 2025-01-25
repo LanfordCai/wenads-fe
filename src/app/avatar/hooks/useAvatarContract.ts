@@ -3,7 +3,7 @@ import { AvatarState, WeNadsAvatar } from '../types';
 import WeNadsAvatarABI from '@/contracts/abis/WeNadsAvatar.json';
 import WeNadsComponentABI from '@/contracts/abis/WeNadsComponent.json';
 import { CONTRACT_ADDRESSES } from '@/contracts/config';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 export type NFTStatus = 'loading' | 'no_nft' | 'has_nft';
 
@@ -60,7 +60,7 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
     }
   }) as { data: WeNadsAvatar | undefined; isLoading: boolean };
 
-  const fetchTemplates = async () => {
+  const fetchTemplates = useCallback(async () => {
     if (!avatar || !publicClient) return;
 
     const [background, hairstyle, eyes, mouth, flower] = await Promise.all([
@@ -103,7 +103,7 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
       mouth,
       flower
     });
-  };
+  }, [avatar, publicClient]);
 
   const fetchAvatar = async () => {
     if (!tokenId || !publicClient) return;
@@ -165,7 +165,7 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
     if (avatar) {
       fetchTemplates();
     }
-  }, [avatar]);
+  }, [avatar, fetchTemplates]);
 
   const mint = async (): Promise<`0x${string}`> => {
     if (hasNFT) {
@@ -224,15 +224,6 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
       throw new Error('You must own a WeNads NFT to change components');
     }
 
-    // Map category to enum value
-    const categoryToEnum: Record<string, number> = {
-      background: 0,
-      hairstyle: 1,
-      eyes: 2,
-      mouth: 3,
-      flower: 4
-    };
-
     // First check which templates we need to mint
     const templateChecks = await Promise.all(
       Object.entries(selectedComponentsToChange)
@@ -249,6 +240,7 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
             existingTokenId = result && result !== BigInt(0) ? result : null;
           } catch (error) {
             // If the call reverts, it means the user doesn't own this template
+            console.log('Error fetching user template token:', error);
             existingTokenId = null;
           }
 
@@ -265,7 +257,7 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
       .filter(check => !check.existingTokenId)
       .map(check => BigInt(check.templateId));
 
-    let mintedTokenIds: Record<string, bigint> = {};
+    const mintedTokenIds: Record<string, bigint> = {};
 
     // Mint missing templates if any
     if (templatesNeedingMint.length > 0) {
@@ -295,7 +287,7 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
       });
 
       // After successful mint, get the token IDs for each template
-      await Promise.all(templatesNeedingMint.map(async (templateId, index) => {
+      await Promise.all(templatesNeedingMint.map(async (templateId) => {
         const tokenId = await publicClient.readContract({
           address: CONTRACT_ADDRESSES.COMPONENT,
           abi: WeNadsComponentABI,

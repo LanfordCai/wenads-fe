@@ -161,7 +161,7 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({
         const dataTransfer = new DataTransfer();
         dataTransfer.items.add(file);
         input.files = dataTransfer.files;
-        handleImageSelect({ target: { files: input.files } } as any);
+        handleImageSelect({ target: { files: input.files } } as React.ChangeEvent<HTMLInputElement>);
       }
     }
   };
@@ -212,8 +212,8 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({
             handleClose();
             window.location.reload();
           }, 2000);
-        } catch (err: any) {
-          const errorMessage = err.message || 'Failed to create template';
+        } catch (error: unknown) {
+          const errorMessage = error instanceof Error ? error.message : 'Failed to create template';
           setError(errorMessage);
           showNotification(
             errorMessage.includes('rejected') ? 'Transaction rejected by user' : errorMessage,
@@ -231,8 +231,8 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({
         setIsCreating(false);
         setIsPending(false);
       };
-    } catch (err: any) {
-      const errorMessage = err.message || 'Failed to create template';
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create template';
       setError(errorMessage);
       showNotification(errorMessage, 'error');
       setIsCreating(false);
@@ -249,15 +249,6 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({
   };
 
   if (!isOpen) return null;
-
-  const categoryToType: Record<ComponentCategory, number> = {
-    background: 0,
-    body: 0, // Not used
-    hairstyle: 1,
-    eyes: 2,
-    mouth: 3,
-    flower: 4
-  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

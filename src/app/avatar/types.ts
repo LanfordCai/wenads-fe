@@ -36,3 +36,16 @@ export interface AvatarSelection {
   category: ComponentCategory;
   componentId: string;
 } 
+
+export interface Template {
+  id: bigint,
+  name: string;
+  creator: string;
+  maxSupply: bigint;
+  currentSupply: bigint;
+  price: bigint;
+  imageData: string;
+  isActive: boolean;
+  componentType: number;
+  image: string;
+}

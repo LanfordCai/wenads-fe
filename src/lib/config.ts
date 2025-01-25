@@ -59,7 +59,7 @@ const supportedChains: Chain[] = [monadDevnet];
 export const config = getDefaultConfig({
   appName: "WalletConnection",
   projectId,
-  chains: supportedChains as any,
+  chains: [monadDevnet],
   ssr: true,
   storage: createStorage({
     storage: cookieStorage,
