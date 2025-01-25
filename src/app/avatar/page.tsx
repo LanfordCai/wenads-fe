@@ -147,8 +147,7 @@ const AvatarGenerator: FC = () => {
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-col lg:grid lg:grid-cols-[1fr,1.5fr] gap-8">
             {/* Preview Section - Always on top for mobile */}
-            <div className="order-1 lg:order-2 bg-purple-50 rounded-xl shadow-[8px_8px_0px_0px_#8B5CF6] p-6 lg:sticky lg:top-28 lg:h-fit border-4 border-[#8B5CF6]">
-              <h2 className="text-2xl font-black mb-4 text-purple-900">Preview</h2>
+            <div className="order-1 lg:order-2 bg-purple-50 rounded-xl shadow-[8px_8px_0px_0px_#8B5CF6] p-12 lg:sticky lg:top-28 lg:h-fit border-4 border-[#8B5CF6]">
               <div className="max-w-[500px] mx-auto">
                 <AvatarEditor 
                   selectedComponents={selectedComponents} 
@@ -160,13 +159,25 @@ const AvatarGenerator: FC = () => {
 
             {/* Controls Section - Below preview on mobile */}
             <div className="order-2 lg:order-1 bg-purple-50 rounded-xl shadow-[8px_8px_0px_0px_#8B5CF6] p-6 border-4 border-[#8B5CF6] overflow-hidden">
-              <div className="flex justify-between items-center mb-6">
+              <div className="flex justify-between items-center mb-8">
                 <h2 className="text-2xl font-black text-purple-900">Components</h2>
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="px-3 py-1 text-sm font-medium text-purple-600 border-2 border-purple-600 rounded-md hover:bg-purple-100"
+                  className="
+                    px-4 py-2 
+                    bg-[#8B5CF6] hover:bg-[#7C3AED]
+                    text-white font-black rounded-xl
+                    border-4 border-[#7C3AED]
+                    shadow-[4px_4px_0px_0px_#5B21B6]
+                    hover:translate-x-[2px] hover:translate-y-[2px]
+                    hover:shadow-[2px_2px_0px_0px_#5B21B6]
+                    transition-all
+                    flex items-center gap-2
+                    uppercase tracking-wider
+                  "
                 >
-                  + New
+                  <span className="text-xl">✨</span>
+                  NEW TEMPLATE
                 </button>
               </div>
               <div className="space-y-8 max-h-[calc(100vh-12rem)] overflow-y-auto pr-2 scrollbar-hide">

@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { ComponentCategory, ComponentInfo } from '../types';
 import { useComponentContract } from '../hooks/useComponentContract';
 import { useNotification } from '../../contexts/NotificationContext';
+import TemplateDetailModal from './TemplateDetailModal';
 
 interface ComponentSelectorProps {
   category: ComponentCategory;
@@ -20,6 +21,7 @@ const ComponentSelector: FC<ComponentSelectorProps> = ({
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [clickStartX, setClickStartX] = useState(0);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   
   const { templates, templateIds } = useComponentContract(category);
   const { showNotification } = useNotification();
@@ -122,8 +124,16 @@ const ComponentSelector: FC<ComponentSelectorProps> = ({
                       />
                     </button>
                   </div>
-                  <div className="mt-1 text-center bg-purple-100 text-[#8B5CF6] text-xs font-bold py-1 px-2 rounded-lg">
-                    {formatPrice(template.price)} MON
+                  <div className="mt-1 space-y-1">
+                    <div className="text-center bg-purple-100 text-[#8B5CF6] text-xs font-bold py-1 px-2 rounded-lg">
+                      {formatPrice(template.price)} MON
+                    </div>
+                    <button
+                      onClick={() => setSelectedTemplate(template)}
+                      className="w-full text-center bg-purple-100 text-[#8B5CF6] text-xs font-bold py-1 px-2 rounded-lg hover:bg-purple-200 transition-colors"
+                    >
+                      Details
+                    </button>
                   </div>
                 </div>
               );
@@ -131,6 +141,13 @@ const ComponentSelector: FC<ComponentSelectorProps> = ({
           </div>
         </div>
       </div>
+
+      {selectedTemplate && (
+        <TemplateDetailModal
+          template={selectedTemplate}
+          onClose={() => setSelectedTemplate(null)}
+        />
+      )}
     </div>
   );
 };
