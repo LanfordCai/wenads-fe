@@ -1,4 +1,6 @@
 export const CONTRACT_ADDRESSES = {
-  AVATAR: '0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0',
-  COMPONENT: '0x5FbDB2315678afecb367f032d93F642f64180aa3'
-} as const; 
+  AVATAR: process.env.NEXT_PUBLIC_AVATAR_CONTRACT as `0x${string}`,
+  COMPONENT: process.env.NEXT_PUBLIC_COMPONENT_CONTRACT as `0x${string}`
+};
+
+export const IS_DEVELOPMENT = process.env.NEXT_PUBLIC_ENV === 'development'; 

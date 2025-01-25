@@ -4,6 +4,7 @@ import { AvatarState, ComponentCategory, ComponentInfo } from '../types';
 import { useAccount } from 'wagmi';
 import { useAvatarContract } from '../hooks/useAvatarContract';
 import { useNotification } from '../../contexts/NotificationContext';
+import { IS_DEVELOPMENT } from '@/contracts/config';
 
 // Include body in rendering order but not in UI
 const renderingCategories: ComponentCategory[] = ['background', 'body', 'hairstyle', 'eyes', 'mouth', 'flower'];
@@ -208,7 +209,7 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
         {getMintButtonText()}
       </button>
 
-      {hasNFT && (
+      {hasNFT && IS_DEVELOPMENT && (
         <button
           onClick={handleBurn}
           disabled={!isConnected || isProcessing || isLoading}

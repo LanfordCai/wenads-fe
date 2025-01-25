@@ -21,7 +21,7 @@ interface TemplateDetailModalProps {
 const TemplateDetailModal: FC<TemplateDetailModalProps> = ({ template, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 max-w-2xl w-full mx-4 relative border-4 border-[#8B5CF6] shadow-[8px_8px_0px_0px_#5B21B6]">
+      <div className="bg-white rounded-xl p-6 max-w-sm w-full mx-4 relative border-4 border-[#8B5CF6] shadow-[8px_8px_0px_0px_#5B21B6]">
         <button
           onClick={onClose}
           className="absolute right-4 top-4 text-purple-400 hover:text-purple-600 text-xl font-bold z-10"
@@ -31,7 +31,7 @@ const TemplateDetailModal: FC<TemplateDetailModalProps> = ({ template, onClose }
         
         <div className="space-y-6">
           {/* Image */}
-          <div className="relative w-full max-w-md mx-auto aspect-square bg-purple-50 rounded-lg overflow-hidden border-2 border-purple-200">
+          <div className="relative w-full max-w-[200px] mx-auto aspect-square bg-purple-50 rounded-lg overflow-hidden border-2 border-purple-200">
             <Image
               src={template.image}
               alt={template.name}

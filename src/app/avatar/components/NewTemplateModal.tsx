@@ -261,7 +261,7 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 max-w-md w-full">
+      <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-purple-600">New Template</h2>
           <button 
