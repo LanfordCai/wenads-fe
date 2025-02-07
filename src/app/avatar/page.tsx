@@ -143,18 +143,6 @@ const AvatarGenerator: FC = () => {
 
   return (
     <div className="min-h-screen bg-purple-100 flex flex-col">
-      {/* Fixed Header */}
-      <div className="sticky top-0 z-50 bg-[#8B5CF6] border-b-4 border-[#7C3AED] shadow-[0px_4px_0px_0px_#5B21B6]">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-4xl font-black text-white tracking-tight">
-              WeNads 
-            </h1>
-            <ConnectBtn />
-          </div>
-        </div>
-      </div>
-
       {/* Main Content */}
       <div className="flex-1 py-8">
         <div className="max-w-7xl mx-auto px-4">

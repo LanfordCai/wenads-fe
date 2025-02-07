@@ -1,5 +1,9 @@
+'use client';
+
 import { Permanent_Marker } from 'next/font/google';
 import { ConnectBtn } from './connectButton';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 const permanentMarker = Permanent_Marker({
   weight: '400',
@@ -8,13 +12,47 @@ const permanentMarker = Permanent_Marker({
 });
 
 export default function Header() {
+  const pathname = usePathname();
+
+  const isActive = (path: string) => {
+    if (path === '/' && pathname === '/') return true;
+    if (path !== '/' && pathname?.startsWith(path)) return true;
+    return false;
+  };
+
   return (
     <div className="sticky top-0 z-50 bg-[#8B5CF6] border-b-4 border-[#7C3AED] shadow-[0px_4px_0px_0px_#5B21B6]">
       <div className="max-w-7xl mx-auto px-4 py-4">
         <div className="flex justify-between items-center">
-          <h1 className={`text-4xl text-white tracking-tight ${permanentMarker.className}`}>
-            WeNads 
-          </h1>
+          <div className="flex items-center space-x-8">
+            <Link href="/">
+              <h1 className={`text-4xl text-white tracking-tight ${permanentMarker.className}`}>
+                WeNads
+              </h1>
+            </Link>
+            <nav className="hidden md:flex space-x-6">
+              <Link 
+                href="/avatar" 
+                className={`text-white font-medium px-4 py-2 rounded-lg transition-colors ${
+                  isActive('/avatar') 
+                    ? 'bg-purple-700 shadow-inner' 
+                    : 'hover:bg-purple-700/30'
+                }`}
+              >
+                Avatar Editor
+              </Link>
+              <Link 
+                href="/nfts" 
+                className={`text-white font-medium px-4 py-2 rounded-lg transition-colors ${
+                  isActive('/nfts') 
+                    ? 'bg-purple-700 shadow-inner' 
+                    : 'hover:bg-purple-700/30'
+                }`}
+              >
+                NFT Collection
+              </Link>
+            </nav>
+          </div>
           <ConnectBtn />
         </div>
       </div>
