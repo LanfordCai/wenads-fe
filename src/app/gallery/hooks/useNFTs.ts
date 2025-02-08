@@ -143,5 +143,6 @@ export function useNFTs() {
     currentPage, 
     totalPages,
     setCurrentPage,
+    totalSupply: totalSupplyRef.current,
   };
 } 

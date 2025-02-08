@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNFTs } from './hooks/useNFTs';
 import Image from 'next/image';
+import NFTDetailModal from './components/NFTDetailModal';
 
 function PageNumbers({ currentPage, totalPages, setCurrentPage, isLoading }: {
   currentPage: number;
@@ -66,7 +67,8 @@ function PageNumbers({ currentPage, totalPages, setCurrentPage, isLoading }: {
 }
 
 export default function NFTsPage() {
-  const { nfts, isLoading, currentPage, totalPages, setCurrentPage } = useNFTs();
+  const { nfts, isLoading, currentPage, totalPages, setCurrentPage, totalSupply } = useNFTs();
+  const [selectedNFT, setSelectedNFT] = useState<{ id: string; imageUrl: string | null } | null>(null);
 
   if (isLoading && currentPage === 1) {
     return (
@@ -78,12 +80,21 @@ export default function NFTsPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">WeNads NFT Collection</h1>
+      <div className="text-center mb-8">
+        <div className="inline-block text-gray-700 px-2 pt-3 pb-1 mb-4 border-b-4 border-purple-400 mx-auto">
+          <span className="text-2xl font-bold">✨ </span>
+          <span className="text-xl font-bold">Already</span>
+          <span className="text-3xl font-black text-purple-600 mx-2 tracking-wider">{totalSupply}</span>
+          <span className="text-xl font-bold">WeNads in our collection! </span>
+          <span className="text-2xl font-bold">🎨</span>
+        </div>
+      </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
         {nfts.map((nft) => (
           <div 
             key={nft.id}
-            className="bg-white rounded-xl shadow-lg p-3 border-4 border-purple-400"
+            className="bg-white rounded-xl shadow-lg p-3 border-4 border-purple-400 cursor-pointer hover:shadow-2xl hover:scale-[1.02] transition-all"
+            onClick={() => setSelectedNFT({ id: nft.id, imageUrl: nft.imageUrl })}
           >
             <div className="relative aspect-square mb-3">
               {nft.isImageLoading ? (
@@ -104,9 +115,10 @@ export default function NFTsPage() {
               )}
             </div>
             <div className="space-y-1">
-              <p className="font-bold text-purple-900 text-sm">WeNad #{nft.id}</p>
-              <p className="text-xs text-gray-500 truncate">
-                Owner: {nft.owner}
+              <p className="font-bold text-purple-900 text-sm">WeNads #{nft.id}</p>
+              <p className="text-xs text-gray-500 flex">
+                <span className="min-w-0 truncate">Owner: {nft.owner.slice(0, -10)}</span>
+                <span>{nft.owner.slice(-10)}</span>
               </p>
             </div>
           </div>
@@ -145,6 +157,15 @@ export default function NFTsPage() {
             ≫
           </button>
         </div>
+      )}
+
+      {/* NFT Detail Modal */}
+      {selectedNFT && (
+        <NFTDetailModal
+          nftId={selectedNFT.id}
+          imageUrl={selectedNFT.imageUrl}
+          onClose={() => setSelectedNFT(null)}
+        />
       )}
     </div>
   );

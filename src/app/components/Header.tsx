@@ -32,24 +32,24 @@ export default function Header() {
             </Link>
             <nav className="hidden md:flex space-x-6">
               <Link 
-                href="/avatar" 
+                href="/builder" 
                 className={`text-white font-medium px-4 py-2 rounded-lg transition-colors ${
-                  isActive('/avatar') 
+                  isActive('/builder') 
                     ? 'bg-purple-700 shadow-inner' 
                     : 'hover:bg-purple-700/30'
                 }`}
               >
-                Avatar Editor
+                Builder
               </Link>
               <Link 
-                href="/nfts" 
+                href="/gallery" 
                 className={`text-white font-medium px-4 py-2 rounded-lg transition-colors ${
-                  isActive('/nfts') 
+                  isActive('/gallery') 
                     ? 'bg-purple-700 shadow-inner' 
                     : 'hover:bg-purple-700/30'
                 }`}
               >
-                NFT Collection
+                Gallery
               </Link>
             </nav>
           </div>
