@@ -17,8 +17,8 @@ function PageNumbers({ currentPage, totalPages, setCurrentPage, isLoading }: {
   pages.push(1);
   
   // Calculate range around current page
-  let start = Math.max(2, currentPage - 2);
-  let end = Math.min(totalPages - 1, currentPage + 2);
+  const start = Math.max(2, currentPage - 2);
+  const end = Math.min(totalPages - 1, currentPage + 2);
   
   // Add ellipsis after first page if needed
   if (start > 2) {
@@ -73,7 +73,7 @@ export default function NFTsPage() {
   if (isLoading && currentPage === 1) {
     return (
       <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
-        <div className="text-2xl font-black text-purple-600">Loading NFTs...</div>
+        <div className="text-2xl font-black text-purple-600">Loading...</div>
       </div>
     );
   }

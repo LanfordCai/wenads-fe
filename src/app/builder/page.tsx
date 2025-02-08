@@ -1,10 +1,9 @@
 'use client';
 
-import { FC, useState, useEffect, useRef } from 'react';
+import { FC, useState, useEffect, useRef, useMemo } from 'react';
 import AvatarEditor from './components/AvatarEditor';
 import ComponentSelector from './components/ComponentSelector';
 import { ComponentCategory, AvatarState, ComponentInfo } from './types';
-import { ConnectBtn } from '../components/connectButton';
 import { useComponentContract } from './hooks/useComponentContract';
 import { useAvatarContract } from './hooks/useAvatarContract';
 import './styles.css';
@@ -26,14 +25,14 @@ const AvatarGenerator: FC = () => {
   const mouthContract = useComponentContract('mouth');
   const flowerContract = useComponentContract('flower');
 
-  // Create an array of contracts in the same order as categories
-  const categoryContracts = [
+  // Move the categoryContracts array into useMemo
+  const categoryContracts = useMemo(() => [
     backgroundContract,
     hairstyleContract,
     eyesContract,
     mouthContract,
     flowerContract
-  ];
+  ], [backgroundContract, hairstyleContract, eyesContract, mouthContract, flowerContract]);
 
   const allTemplatesLoaded = categoryContracts.every(contract => contract.templates.length > 0);
 
@@ -135,7 +134,7 @@ const AvatarGenerator: FC = () => {
 
   if (isLoading || !allTemplatesLoaded) {
     return (
-      <div className="min-h-screen bg-purple-100 flex items-center justify-center">
+      <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
         <div className="text-2xl font-black text-purple-600">Loading...</div>
       </div>
     );

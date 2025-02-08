@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { usePublicClient } from 'wagmi';
 import WeNadsAvatarABI from '@/contracts/abis/WeNadsAvatar.json';
 
@@ -26,7 +26,7 @@ export function useNFTs() {
   const cachedNFTs = useRef<CachedNFT[]>([]);
   const totalSupplyRef = useRef<number>(0);
 
-  const loadImage = async (tokenId: bigint, nftIndex: number) => {
+  const loadImage = useCallback(async (tokenId: bigint, nftIndex: number) => {
     try {
       const uri = await publicClient?.readContract({
         address: AVATAR_CONTRACT,
@@ -51,9 +51,9 @@ export function useNFTs() {
           : nft
       ));
     }
-  };
+  }, [publicClient]);
 
-  const loadBasicNFTs = async () => {
+  const loadBasicNFTs = useCallback(async () => {
     if (!publicClient) return;
 
     try {
@@ -100,9 +100,9 @@ export function useNFTs() {
     } catch (error) {
       console.error('Error fetching basic NFTs:', error);
     }
-  };
+  }, [publicClient]);
 
-  const loadPage = async (page: number) => {
+  const loadPage = useCallback(async (page: number) => {
     setIsLoading(true);
 
     try {
@@ -137,11 +137,11 @@ export function useNFTs() {
       console.error('Error loading page:', error);
       setIsLoading(false);
     }
-  };
+  }, [loadImage, loadBasicNFTs]);
 
   useEffect(() => {
     loadPage(currentPage);
-  }, [publicClient, currentPage]);
+  }, [publicClient, currentPage, loadPage]);
 
   return { 
     nfts, 
