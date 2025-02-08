@@ -1,36 +1,73 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# WeNads Frontend
+
+WeNads is a Soulbound Token (SBT) collection with a unique twist: each wallet address is entitled to only one NFT. Breaking away from traditional SBT constraints, WeNads empowers you to customize your avatar's components whenever inspiration strikes! What sets us apart? Each component exists as a tradeable NFT, and here's what makes it special: you can design, mint, and market your own component templates, fostering a genuinely community-driven ecosystem. Best of all, every asset lives permanently on-chain!🔥
+
+This repo is for frontend
+
+## Prerequisites
+
+- Node.js 16.x or later
+- npm or yarn package manager
+- MetaMask or similar Web3 wallet
+- Access to Monad devnet
 
 ## Getting Started
 
-First, run the development server:
+1. Clone the repository:
+```bash
+git clone https://github.com/your-username/wenads-fe.git
+cd wenads-fe
+```
 
+2. Install dependencies:
+```bash
+npm install
+# or
+yarn install
+```
+
+3. Set up environment variables:
+Create a `.env.local` file in the root directory and add necessary environment variables:
+```env
+NEXT_PUBLIC_AVATAR_CONTRACT="Your WeNadsContract"
+NEXT_PUBLIC_COMPONENT_CONTRACT="Your WeNadsComponentContract"
+NEXT_PUBLIC_ENV="You env, production or development"
+```
+
+4. Run the development server:
 ```bash
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/               # Next.js app directory
+│   ├── builder/      # Component builder feature
+│   ├── gallery/      # NFT gallery feature
+│   └── components/   # Shared components
+├── contracts/        # Smart contract ABIs and config
+├── lib/             # Utility functions and configurations
+└── types/           # TypeScript type definitions
+```
 
-## Learn More
+## Contributing
 
-To learn more about Next.js, take a look at the following resources:
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Deploy on Vercel
+## Support
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+For support, please open an issue in the GitHub repository or contact the maintainers.
