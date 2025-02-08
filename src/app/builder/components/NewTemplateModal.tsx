@@ -1,4 +1,4 @@
-import { FC, useState, useRef } from 'react';
+import { FC, useState, useRef, useEffect } from 'react';
 import { ComponentCategory } from '../types';
 import { useComponentContract } from '../hooks/useComponentContract';
 import { parseEther } from 'viem';
@@ -32,6 +32,17 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({
   const { showNotification } = useNotification();
 
   const { createTemplate } = useComponentContract(category);
+
+  // Add effect to block body scroll
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    }
+    
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   const checkAlphaChannel = (imgData: ImageData, requireAlpha: boolean) => {
     const data = imgData.data;
@@ -251,140 +262,151 @@ const NewTemplateModal: FC<NewTemplateModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-purple-600">New Template</h2>
-          <button 
-            onClick={handleClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
-          <h3 className="font-medium text-purple-900 mb-2">Template Creation Rules:</h3>
-          <ul className="space-y-1 text-sm text-purple-700">
-            <li>• Creation fee: 0.02 MON</li>
-            <li>• When others use your template:</li>
-            <li className="pl-4">- 80% of the payment goes to you (creator)</li>
-            <li className="pl-4">- 20% goes to the WeNads team</li>
-          </ul>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-purple-500 focus:ring-purple-500"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Max Supply</label>
-            <input
-              type="number"
-              value={maxSupply}
-              onChange={(e) => setMaxSupply(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-purple-500 focus:ring-purple-500"
-              required
-              min="1"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Price (MON)</label>
-            <input
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-purple-500 focus:ring-purple-500"
-              required
-              min="0"
-              step="0.01"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Component Type</label>
-            <select
-              value={category}
-              onChange={handleCategoryChange}
-              className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-purple-500 focus:ring-purple-500"
-            >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>
-                  {cat === 'hairstyle' ? 'Hair' : cat}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Image {category === 'background' ? '(max 10KB, PNG)' : '(max 10KB, PNG with transparency)'}
-            </label>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImageSelect}
-              accept="image/png"
-              className="hidden"
-            />
-            <div 
-              onClick={() => fileInputRef.current?.click()}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-              className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-purple-500 transition-colors"
-            >
-              <div className="space-y-1 text-center">
-                {selectedImage ? (
-                  <p className="text-sm text-gray-600">
-                    Selected: {selectedImage.name}
-                  </p>
-                ) : (
-                  <>
-                    <div className="text-purple-600">
-                      <svg className="mx-auto h-12 w-12" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                    </div>
-                    <p className="text-sm text-gray-600">Click or drag image here</p>
-                  </>
-                )}
-              </div>
-            </div>
-            {error && (
-              <p className="mt-1 text-sm text-red-500">{error}</p>
-            )}
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-4">
-            <button
-              type="button"
+    <>
+      {/* Overlay div only blocks scroll, not interactions */}
+      <div 
+        className="fixed inset-0 z-40 bg-transparent" 
+        style={{ touchAction: 'none' }}
+      />
+      
+      <div 
+        className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+        style={{ touchAction: 'none' }}
+      >
+        <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold text-purple-600">New Template</h2>
+            <button 
               onClick={handleClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isCreating}
+              className="text-gray-500 hover:text-gray-700"
             >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isCreating || isPending || isConfirmed || !selectedImage || !name || !maxSupply || !price || !!error}
-              className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:bg-purple-400 disabled:cursor-not-allowed"
-            >
-              {isConfirmed ? 'Created!' : isPending ? 'Creating...' : 'Create Template'}
+              ✕
             </button>
           </div>
-        </form>
+
+          <div className="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
+            <h3 className="font-medium text-purple-900 mb-2">Template Creation Rules:</h3>
+            <ul className="space-y-1 text-sm text-purple-700">
+              <li>• Creation fee: 0.02 MON</li>
+              <li>• When others use your template:</li>
+              <li className="pl-4">- 80% of the payment goes to you (creator)</li>
+              <li className="pl-4">- 20% goes to the WeNads team</li>
+            </ul>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Name</label>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-purple-500 focus:ring-purple-500"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Max Supply</label>
+              <input
+                type="number"
+                value={maxSupply}
+                onChange={(e) => setMaxSupply(e.target.value)}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-purple-500 focus:ring-purple-500"
+                required
+                min="1"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Price (MON)</label>
+              <input
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-purple-500 focus:ring-purple-500"
+                required
+                min="0"
+                step="0.01"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Component Type</label>
+              <select
+                value={category}
+                onChange={handleCategoryChange}
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 focus:border-purple-500 focus:ring-purple-500"
+              >
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>
+                    {cat === 'hairstyle' ? 'Hair' : cat}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Image {category === 'background' ? '(max 10KB, PNG)' : '(max 10KB, PNG with transparency)'}
+              </label>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImageSelect}
+                accept="image/png"
+                className="hidden"
+              />
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md cursor-pointer hover:border-purple-500 transition-colors"
+              >
+                <div className="space-y-1 text-center">
+                  {selectedImage ? (
+                    <p className="text-sm text-gray-600">
+                      Selected: {selectedImage.name}
+                    </p>
+                  ) : (
+                    <>
+                      <div className="text-purple-600">
+                        <svg className="mx-auto h-12 w-12" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                          <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </div>
+                      <p className="text-sm text-gray-600">Click or drag image here</p>
+                    </>
+                  )}
+                </div>
+              </div>
+              {error && (
+                <p className="mt-1 text-sm text-red-500">{error}</p>
+              )}
+            </div>
+
+            <div className="flex justify-end space-x-3 pt-4">
+              <button
+                type="button"
+                onClick={handleClose}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={isCreating}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isCreating || isPending || isConfirmed || !selectedImage || !name || !maxSupply || !price || !!error}
+                className="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-md hover:bg-purple-700 disabled:bg-purple-400 disabled:cursor-not-allowed"
+              >
+                {isConfirmed ? 'Created!' : isPending ? 'Creating...' : 'Create Template'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

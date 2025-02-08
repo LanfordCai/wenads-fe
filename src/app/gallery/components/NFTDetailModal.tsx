@@ -237,7 +237,6 @@ const NFTDetailModal: FC<NFTDetailModalProps> = ({ nftId, imageUrl, onClose }) =
                 >
                   {componentURIs.map(({ uri, label }, index) => {
                     const imageUrl = getImageFromURI(uri);
-                    if (!imageUrl) return null;
                     
                     return (
                       <div 
@@ -245,13 +244,19 @@ const NFTDetailModal: FC<NFTDetailModalProps> = ({ nftId, imageUrl, onClose }) =
                         className="flex-shrink-0 flex flex-col items-center gap-1.5 pointer-events-none"
                       >
                         <div className="relative w-16 h-16 bg-white rounded-lg overflow-hidden border-2 border-purple-200">
-                          <Image
-                            src={imageUrl}
-                            alt={`${label} Component`}
-                            fill
-                            className="object-contain p-1"
-                            draggable={false}
-                          />
+                          {imageUrl ? (
+                            <Image
+                              src={imageUrl}
+                              alt={`${label} Component`}
+                              fill
+                              className="object-contain p-1"
+                              draggable={false}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <p className="text-xs text-purple-400 font-medium text-center px-1">No {label}</p>
+                            </div>
+                          )}
                         </div>
                         <p className="text-xs font-medium text-gray-600">{label}</p>
                       </div>
@@ -261,10 +266,11 @@ const NFTDetailModal: FC<NFTDetailModalProps> = ({ nftId, imageUrl, onClose }) =
               </div>
             </div>
 
-            {owner && (
-              <div className="flex items-center gap-2 mt-4">
-                <span className="text-sm py-1.5 text-gray-600 shrink-0">Owner:</span>
-                <div className="flex-1 min-w-0">
+            {/* Owner section - now shows even without owner data */}
+            <div className="flex items-center gap-2 mt-4">
+              <span className="text-sm py-1.5 text-gray-600 shrink-0">Owner:</span>
+              <div className="flex-1 min-w-0">
+                {owner ? (
                   <button
                     onClick={handleCopyAddress}
                     className="w-full px-3 py-1.5 text-sm bg-purple-50 hover:bg-purple-100 text-purple-600 rounded-lg transition-colors flex items-center gap-1.5"
@@ -281,9 +287,13 @@ const NFTDetailModal: FC<NFTDetailModalProps> = ({ nftId, imageUrl, onClose }) =
                       </svg>
                     )}
                   </button>
-                </div>
+                ) : (
+                  <div className="w-full px-3 py-1.5 text-sm bg-purple-50 text-purple-400 rounded-lg">
+                    Loading owner...
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>

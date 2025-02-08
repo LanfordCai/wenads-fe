@@ -109,6 +109,12 @@ export function useNFTs() {
       // Load basic NFTs if not cached
       if (cachedNFTs.current.length === 0) {
         await loadBasicNFTs();
+        
+        // If we still don't have NFTs after loading, return early
+        if (cachedNFTs.current.length === 0) {
+          setIsLoading(false);
+          return;
+        }
       }
 
       const startIndex = (page - 1) * ITEMS_PER_PAGE;
