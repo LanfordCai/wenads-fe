@@ -196,7 +196,7 @@ const NFTDetailModal: FC<NFTDetailModalProps> = ({ nftId, imageUrl, onClose }) =
           </button>
           
           <div className="flex flex-col h-full">
-            <h2 className="text-2xl font-black text-purple-900 mb-4">WeNads #{nftId}</h2>
+            <h2 className="text-2xl font-black text-purple-800 mb-4">WeNads #{nftId}</h2>
             
             <div className="flex flex-col gap-4">
               {/* Main NFT Image */}

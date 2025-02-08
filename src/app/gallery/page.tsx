@@ -50,10 +50,10 @@ function PageNumbers({ currentPage, totalPages, setCurrentPage, isLoading }: {
             disabled={page === currentPage || isLoading}
             className={`w-8 h-8 flex items-center justify-center rounded-lg font-bold text-sm
               ${page === currentPage
-                ? 'bg-purple-600 text-white'
+                ? 'bg-[#8B5CF6] text-white'
                 : isLoading
                   ? 'text-purple-300 cursor-not-allowed'
-                  : 'text-purple-600 hover:bg-purple-100'
+                  : 'text-[#8B5CF6] hover:bg-purple-50'
               }`}
           >
             {page}
@@ -93,13 +93,13 @@ export default function NFTsPage() {
         {nfts.map((nft) => (
           <div 
             key={nft.id}
-            className="bg-white rounded-xl shadow-lg p-3 border-4 border-purple-400 cursor-pointer hover:shadow-2xl hover:scale-[1.02] transition-all"
+            className="bg-white rounded-xl shadow-lg p-3 border-4 border-[#8B5CF6] cursor-pointer hover:shadow-2xl hover:scale-[1.02] transition-all"
             onClick={() => setSelectedNFT({ id: nft.id, imageUrl: nft.imageUrl })}
           >
             <div className="relative aspect-square mb-3">
               {nft.isImageLoading ? (
-                <div className="w-full h-full flex items-center justify-center bg-purple-100 rounded-lg">
-                  <p className="text-purple-600 font-bold">Loading image...</p>
+                <div className="w-full h-full flex items-center justify-center bg-purple-50 rounded-lg">
+                  <p className="text-[#8B5CF6] font-bold">Loading image...</p>
                 </div>
               ) : nft.imageUrl ? (
                 <Image
@@ -109,13 +109,13 @@ export default function NFTsPage() {
                   className="object-cover rounded-lg"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-purple-100 rounded-lg">
-                  <p className="text-purple-600 font-bold">Failed to load image</p>
+                <div className="w-full h-full flex items-center justify-center bg-purple-50 rounded-lg">
+                  <p className="text-[#8B5CF6] font-bold">Failed to load image</p>
                 </div>
               )}
             </div>
             <div className="space-y-1">
-              <p className="font-bold text-purple-900 text-sm">WeNads #{nft.id}</p>
+              <p className="font-bold text-purple-800 text-sm">WeNads #{nft.id}</p>
               <p className="text-xs text-gray-500 flex">
                 <span className="min-w-0 truncate">Owner: {nft.owner.slice(0, -10)}</span>
                 <span>{nft.owner.slice(-10)}</span>

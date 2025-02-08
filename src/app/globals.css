@@ -5,6 +5,11 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Purple Color System */
+  --purple-primary: #8B5CF6;    /* Main purple */
+  --purple-secondary: #7C3AED;  /* Darker purple for borders/hover */
+  --purple-tertiary: #5B21B6;   /* Darkest purple for shadows */
 }
 
 @media (prefers-color-scheme: dark) {

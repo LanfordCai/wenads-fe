@@ -38,8 +38,8 @@ export default function Header() {
                 href="/builder" 
                 className={`text-white font-medium px-4 py-2 rounded-lg transition-colors ${
                   isActive('/builder') 
-                    ? 'bg-purple-700 shadow-inner' 
-                    : 'hover:bg-purple-700/30'
+                    ? 'bg-[#7C3AED] shadow-inner' 
+                    : 'hover:bg-[#7C3AED]/30'
                 }`}
               >
                 Builder
@@ -48,8 +48,8 @@ export default function Header() {
                 href="/gallery" 
                 className={`text-white font-medium px-4 py-2 rounded-lg transition-colors ${
                   isActive('/gallery') 
-                    ? 'bg-purple-700 shadow-inner' 
-                    : 'hover:bg-purple-700/30'
+                    ? 'bg-[#7C3AED] shadow-inner' 
+                    : 'hover:bg-[#7C3AED]/30'
                 }`}
               >
                 Gallery

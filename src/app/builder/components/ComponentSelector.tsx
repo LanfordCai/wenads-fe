@@ -81,7 +81,7 @@ const ComponentSelector: FC<ComponentSelectorProps> = ({
 
   return (
     <div className="space-y-3">
-      <h3 className="text-lg font-black uppercase text-purple-900 flex items-center gap-2">
+      <h3 className="text-lg font-black uppercase text-purple-800 flex items-center gap-2">
         {category}
         <span className="text-sm bg-[#8B5CF6] px-2 py-0.5 rounded-lg text-white">
           {templateIds.length}

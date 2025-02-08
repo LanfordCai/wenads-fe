@@ -158,7 +158,7 @@ const AvatarGenerator: FC = () => {
             {/* Controls Section - Below preview on mobile */}
             <div className="order-2 lg:order-1 bg-purple-50 rounded-xl shadow-[8px_8px_0px_0px_#8B5CF6] p-6 border-4 border-[#8B5CF6] overflow-hidden">
               <div className="flex justify-between items-center mb-8">
-                <h2 className="text-2xl font-black text-purple-900">Components</h2>
+                <h2 className="text-2xl font-black text-purple-800">Components</h2>
                 <button
                   onClick={() => setIsModalOpen(true)}
                   className="

@@ -77,23 +77,23 @@ const TemplateDetailModal: FC<TemplateDetailModalProps> = ({ template, onClose }
 
             {/* Info */}
             <div className="space-y-3">
-              <h3 className="text-xl font-black text-purple-900">{template.name}</h3>
+              <h3 className="text-xl font-black text-purple-800">{template.name}</h3>
               
               <div className="space-y-2 text-sm">
                 <div className="bg-purple-50 p-2 rounded-lg">
                   <div className="text-purple-600 font-bold">Creator</div>
-                  <div className="text-purple-900 font-mono break-all">{template.creator}</div>
+                  <div className="text-purple-800 font-mono break-all">{template.creator}</div>
                 </div>
                 
                 <div className="grid grid-cols-3 gap-2">
                   <div className="bg-purple-50 p-2 rounded-lg">
                     <div className="text-purple-600 font-bold">Price</div>
-                    <div className="text-purple-900">{formatEther(template.price)} MON</div>
+                    <div className="text-purple-800">{formatEther(template.price)} MON</div>
                   </div>
                   
                   <div className="bg-purple-50 p-2 rounded-lg">
                     <div className="text-purple-600 font-bold">Supply</div>
-                    <div className="text-purple-900">
+                    <div className="text-purple-800">
                       {template.currentSupply.toString()}/{template.maxSupply.toString()}
                     </div>
                   </div>
@@ -109,7 +109,7 @@ const TemplateDetailModal: FC<TemplateDetailModalProps> = ({ template, onClose }
                 {/* Component Status */}
                 <div className="bg-purple-50 p-2 rounded-lg">
                   <div className="text-purple-600 font-bold">Component Status</div>
-                  <div className={hasTemplate ? "text-green-600" : "text-purple-900"}>
+                  <div className={hasTemplate ? "text-green-600" : "text-purple-800"}>
                     {hasTemplate ? "You have this component" : "You don't have this component"}
                   </div>
                 </div>
