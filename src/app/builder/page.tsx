@@ -162,20 +162,21 @@ const AvatarGenerator: FC = () => {
                 <button
                   onClick={() => setIsModalOpen(true)}
                   className="
-                    px-4 py-2 
+                    px-3 py-1.5 md:px-4 md:py-2 
                     bg-[#8B5CF6] hover:bg-[#7C3AED]
-                    text-white font-black rounded-xl
+                    text-white text-sm md:text-base font-black rounded-xl
                     border-4 border-[#7C3AED]
                     shadow-[4px_4px_0px_0px_#5B21B6]
                     hover:translate-x-[2px] hover:translate-y-[2px]
                     hover:shadow-[2px_2px_0px_0px_#5B21B6]
                     transition-all
-                    flex items-center gap-2
+                    flex items-center gap-1 md:gap-2
                     uppercase tracking-wider
                   "
                 >
-                  <span className="text-xl">✨</span>
-                  NEW TEMPLATE
+                  <span className="text-base md:text-xl">✨</span>
+                  <span className="hidden md:inline">NEW TEMPLATE</span>
+                  <span className="md:hidden">NEW</span>
                 </button>
               </div>
               <div className="space-y-8 max-h-[calc(100vh-12rem)] overflow-y-auto pr-2 scrollbar-hide">
