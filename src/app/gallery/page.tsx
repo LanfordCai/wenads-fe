@@ -5,72 +5,11 @@ import { useNFTs } from './hooks/useNFTs';
 import Image from 'next/image';
 import NFTDetailModal from './components/NFTDetailModal';
 
-function PageNumbers({ currentPage, totalPages, setCurrentPage, isLoading }: {
-  currentPage: number;
-  totalPages: number;
-  setCurrentPage: (page: number) => void;
-  isLoading: boolean;
-}) {
-  const pages: (number | string)[] = [];
-  
-  // Always show first page
-  pages.push(1);
-  
-  // Calculate range around current page
-  const start = Math.max(2, currentPage - 2);
-  const end = Math.min(totalPages - 1, currentPage + 2);
-  
-  // Add ellipsis after first page if needed
-  if (start > 2) {
-    pages.push('...');
-  }
-  
-  // Add pages around current page
-  for (let i = start; i <= end; i++) {
-    pages.push(i);
-  }
-  
-  // Add ellipsis before last page if needed
-  if (end < totalPages - 1) {
-    pages.push('...');
-  }
-  
-  // Always show last page if more than one page
-  if (totalPages > 1) {
-    pages.push(totalPages);
-  }
-
-  return (
-    <div className="flex items-center space-x-2">
-      {pages.map((page, index) => (
-        typeof page === 'number' ? (
-          <button
-            key={index}
-            onClick={() => setCurrentPage(page)}
-            disabled={page === currentPage || isLoading}
-            className={`w-8 h-8 flex items-center justify-center rounded-lg font-bold text-sm
-              ${page === currentPage
-                ? 'bg-[#8B5CF6] text-white'
-                : isLoading
-                  ? 'text-purple-300 cursor-not-allowed'
-                  : 'text-[#8B5CF6] hover:bg-purple-50'
-              }`}
-          >
-            {page}
-          </button>
-        ) : (
-          <span key={index} className="text-purple-600">...</span>
-        )
-      ))}
-    </div>
-  );
-}
-
 export default function NFTsPage() {
-  const { nfts, isLoading, currentPage, totalPages, setCurrentPage, totalSupply } = useNFTs();
+  const { nfts, isLoading, hasMore, loadMoreNFTs, totalSupply } = useNFTs();
   const [selectedNFT, setSelectedNFT] = useState<{ id: string; imageUrl: string | null } | null>(null);
 
-  if (isLoading && currentPage === 1) {
+  if (isLoading && nfts.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
         <div className="text-2xl font-black text-purple-600">Loading...</div>
@@ -79,7 +18,7 @@ export default function NFTsPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 pb-16">
       <div className="text-center mb-8">
         <div className="inline-block text-gray-700 px-2 pt-3 pb-1 mb-4 border-b-4 border-purple-400 mx-auto">
           <span className="text-2xl font-bold">✨ </span>
@@ -89,7 +28,7 @@ export default function NFTsPage() {
           <span className="text-2xl font-bold">🎨</span>
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
         {nfts.map((nft) => (
           <div 
             key={nft.id}
@@ -125,36 +64,16 @@ export default function NFTsPage() {
         ))}
       </div>
 
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="mt-8 flex justify-center items-center space-x-4">
+      {/* Load More Button */}
+      {hasMore && (
+        <div className="mt-8 flex justify-center">
           <button
-            onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-            disabled={currentPage === 1 || isLoading}
-            className={`px-4 py-2 rounded-lg font-bold text-lg ${
-              currentPage === 1 || isLoading
-                ? 'text-purple-300 cursor-not-allowed'
-                : 'text-purple-600 hover:text-purple-700'
-            }`}
+            onClick={loadMoreNFTs}
+            disabled={isLoading}
+            className={`px-6 py-2 bg-[#8B5CF6] text-white text-lg font-bold rounded-xl border-4 border-[#7C3AED] shadow-[4px_4px_0px_0px_#5B21B6] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#5B21B6] transition-all
+              ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            ≪
-          </button>
-          <PageNumbers 
-            currentPage={currentPage}
-            totalPages={totalPages}
-            setCurrentPage={setCurrentPage}
-            isLoading={isLoading}
-          />
-          <button
-            onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-            disabled={currentPage === totalPages || isLoading}
-            className={`px-4 py-2 rounded-lg font-bold text-lg ${
-              currentPage === totalPages || isLoading
-                ? 'text-purple-300 cursor-not-allowed'
-                : 'text-purple-600 hover:text-purple-700'
-            }`}
-          >
-            ≫
+            {isLoading ? '🎨 Loading...' : '🎨 Load More'}
           </button>
         </div>
       )}

@@ -19,12 +19,12 @@ interface CachedNFT {
 
 export function useNFTs() {
   const [nfts, setNfts] = useState<NFTMetadata[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const publicClient = usePublicClient();
-  const cachedNFTs = useRef<CachedNFT[]>([]);
+  const currentIndexRef = useRef<number>(0);
   const totalSupplyRef = useRef<number>(0);
+  const isInitialLoad = useRef<boolean>(true);
 
   const loadImage = useCallback(async (tokenId: bigint, nftIndex: number) => {
     try {
@@ -53,102 +53,94 @@ export function useNFTs() {
     }
   }, [publicClient]);
 
-  const loadBasicNFTs = useCallback(async () => {
-    if (!publicClient) return;
+  const loadMoreNFTs = useCallback(async () => {
+    if (!publicClient || isLoading) return;
+
+    setIsLoading(true);
 
     try {
-      const totalSupply = await publicClient.readContract({
-        address: AVATAR_CONTRACT,
-        abi: WeNadsAvatarABI,
-        functionName: 'totalSupply',
-      }) as bigint;
+      // Get total supply on first load
+      if (isInitialLoad.current) {
+        const totalSupply = await publicClient.readContract({
+          address: AVATAR_CONTRACT,
+          abi: WeNadsAvatarABI,
+          functionName: 'totalSupply',
+        }) as bigint;
+        totalSupplyRef.current = Number(totalSupply);
+        isInitialLoad.current = false;
+      }
 
-      const total = Number(totalSupply);
-      totalSupplyRef.current = total;
-      setTotalPages(Math.ceil(total / ITEMS_PER_PAGE));
+      const endIndex = Math.min(currentIndexRef.current + ITEMS_PER_PAGE, totalSupplyRef.current);
+      const newNFTs: NFTMetadata[] = [];
 
-      const indices = Array.from({ length: total }, (_, i) => i);
-      
-      // Fetch all token IDs concurrently
-      const tokenIds = await Promise.all(
-        indices.map(i => 
+      // Fetch token IDs and owners in batches
+      const tokenPromises: Promise<bigint>[] = [];
+      const ownerPromises = [];
+
+      for (let i = currentIndexRef.current; i < endIndex; i++) {
+        tokenPromises.push(
           publicClient.readContract({
             address: AVATAR_CONTRACT,
             abi: WeNadsAvatarABI,
             functionName: 'tokenByIndex',
             args: [BigInt(i)],
           }) as Promise<bigint>
-        )
-      );
+        );
+      }
 
-      // Fetch all owners concurrently
-      const owners = await Promise.all(
-        tokenIds.map(tokenId =>
+      const tokenIds = await Promise.all(tokenPromises);
+
+      for (const tokenId of tokenIds) {
+        ownerPromises.push(
           publicClient.readContract({
             address: AVATAR_CONTRACT,
             abi: WeNadsAvatarABI,
             functionName: 'ownerOf',
-            args: [tokenId],
-          }) as Promise<string>
-        )
-      );
-
-      cachedNFTs.current = tokenIds.map((tokenId, index) => ({
-        id: tokenId.toString(),
-        owner: owners[index],
-      }));
-    } catch (error) {
-      console.error('Error fetching basic NFTs:', error);
-    }
-  }, [publicClient]);
-
-  const loadPage = useCallback(async (page: number) => {
-    setIsLoading(true);
-
-    try {
-      // Load basic NFTs if not cached
-      if (cachedNFTs.current.length === 0) {
-        await loadBasicNFTs();
-        
-        // If we still don't have NFTs after loading, return early
-        if (cachedNFTs.current.length === 0) {
-          setIsLoading(false);
-          return;
-        }
+            args: [tokenId as bigint],
+          })
+        );
       }
 
-      const startIndex = (page - 1) * ITEMS_PER_PAGE;
-      const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, totalSupplyRef.current);
-      
-      const pageNFTs = cachedNFTs.current.slice(startIndex, endIndex).map(nft => ({
-        ...nft,
-        imageUrl: null,
-        isImageLoading: true,
-      }));
+      const owners = await Promise.all(ownerPromises);
 
-      setNfts(pageNFTs);
-      setIsLoading(false);
+      // Create new NFT objects
+      tokenIds.forEach((tokenId, index) => {
+        newNFTs.push({
+          id: tokenId.toString(),
+          owner: owners[index] as string,
+          imageUrl: null,
+          isImageLoading: true,
+        });
+      });
 
-      // Load images for the current page
-      await Promise.all(
-        pageNFTs.map((nft, index) => loadImage(BigInt(nft.id), index))
-      );
+      setNfts(current => [...current, ...newNFTs]);
+      currentIndexRef.current = endIndex;
+      setHasMore(endIndex < totalSupplyRef.current);
+
+      // Load images for new NFTs
+      newNFTs.forEach((nft, index) => {
+        const globalIndex = nfts.length + index;
+        loadImage(BigInt(nft.id), globalIndex);
+      });
     } catch (error) {
-      console.error('Error loading page:', error);
+      console.error('Error loading NFTs:', error);
+    } finally {
       setIsLoading(false);
     }
-  }, [loadImage, loadBasicNFTs]);
+  }, [publicClient, isLoading, loadImage, nfts.length]);
 
+  // Load initial NFTs
   useEffect(() => {
-    loadPage(currentPage);
-  }, [publicClient, currentPage, loadPage]);
+    if (isInitialLoad.current && publicClient) {
+      loadMoreNFTs();
+    }
+  }, [publicClient, loadMoreNFTs]);
 
   return { 
     nfts, 
-    isLoading, 
-    currentPage, 
-    totalPages,
-    setCurrentPage,
+    isLoading,
+    hasMore,
+    loadMoreNFTs,
     totalSupply: totalSupplyRef.current,
   };
 } 
