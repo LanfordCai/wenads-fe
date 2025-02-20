@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi';
 import { useAvatarContract } from '../hooks/useAvatarContract';
 import { useNotification } from '../../contexts/NotificationContext';
 import { IS_DEVELOPMENT } from '@/contracts/config';
+import MintNameModal from './MintNameModal';
 
 // Include body in rendering order but not in UI
 const renderingCategories: ComponentCategory[] = ['background', 'body', 'hairstyle', 'eyes', 'mouth', 'flower'];
@@ -17,6 +18,7 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
   selectedComponents,
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showMintModal, setShowMintModal] = useState(false);
   const { mint, changeComponents, burn, templates, nftStatus } = useAvatarContract(selectedComponents);
   const { showNotification } = useNotification();
   const { isConnected } = useAccount();
@@ -96,11 +98,29 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
         await changeComponents(changedComponents, selectedComponents);
         showNotification('Components changed successfully!', 'success');
       } else {
-        showNotification('Minting avatar...', 'info');
-        await mint();
-        showNotification('Avatar minted successfully!', 'success');
-        setMintSuccess(true);
+        // Show the mint modal instead of minting directly
+        setShowMintModal(true);
       }
+    } catch (error: unknown) {
+      showNotification(
+        error instanceof Error && error.message.includes('rejected') 
+          ? 'Transaction rejected by user' 
+          : error instanceof Error ? error.message : 'An error occurred',
+        'error'
+      );
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleMintWithName = async (name: string) => {
+    try {
+      setIsProcessing(true);
+      setShowMintModal(false);
+      showNotification('Minting avatar...', 'info');
+      await mint(name);
+      showNotification('Avatar minted successfully!', 'success');
+      setMintSuccess(true);
     } catch (error: unknown) {
       showNotification(
         error instanceof Error && error.message.includes('rejected') 
@@ -211,6 +231,13 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
         >
           {isProcessing ? '🔥 BURNING...' : isLoading ? '⌛ LOADING...' : '🔥 BURN NFT'}
         </button>
+      )}
+
+      {showMintModal && (
+        <MintNameModal
+          onClose={() => setShowMintModal(false)}
+          onMint={handleMintWithName}
+        />
       )}
     </div>
   );

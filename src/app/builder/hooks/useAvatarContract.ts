@@ -167,7 +167,7 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
     }
   }, [avatar, fetchTemplates]);
 
-  const mint = async (): Promise<`0x${string}`> => {
+  const mint = async (name: string): Promise<`0x${string}`> => {
     if (hasNFT) {
       throw new Error('You already own a WeNads NFT');
     }
@@ -199,7 +199,7 @@ export const useAvatarContract = (selectedComponents: AvatarState) => {
         BigInt(eyes.id),
         BigInt(mouth.id),
         BigInt(flower.id),
-        'WeNads Avatar' // Default name
+        name // Use the provided name instead of default
       ],
       value: totalPrice
     });
