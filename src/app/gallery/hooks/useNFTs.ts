@@ -8,6 +8,7 @@ const ITEMS_PER_PAGE = 18;
 export interface NFTMetadata {
   id: string;
   owner: string;
+  name: string | null;
   imageUrl: string | null;
   isImageLoading: boolean;
 }
@@ -45,7 +46,12 @@ export function useNFTs() {
 
       setNfts(current => current.map((nft, index) => 
         index === nftIndex 
-          ? { ...nft, imageUrl: metadata.image || null, isImageLoading: false }
+          ? { 
+              ...nft, 
+              imageUrl: metadata.image || null, 
+              name: metadata.name || null,
+              isImageLoading: false 
+            }
           : nft
       ));
     } catch (error) {
@@ -123,6 +129,7 @@ export function useNFTs() {
         newNFTs.push({
           id: tokenId.toString(),
           owner: owners[index] as string,
+          name: null,
           imageUrl: null,
           isImageLoading: true,
         });

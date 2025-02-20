@@ -54,12 +54,19 @@ export default function NFTsPage() {
                 </div>
               )}
             </div>
-            <div className="space-y-1">
-              <p className="font-bold text-purple-800 text-sm">WeNads #{nft.id}</p>
-              <p className="text-xs text-gray-500 flex">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-medium text-purple-600">WeNads #{nft.id}</p>
+              </div>
+              <div className="bg-purple-50 py-2 px-3 rounded-lg text-center">
+                <p className="font-bold text-purple-800 text-sm break-all">
+                  {nft.name || 'Unnamed WeNad'}
+                </p>
+              </div>
+              <div className="text-xs text-gray-500 flex">
                 <span className="min-w-0 truncate">Owner: {nft.owner.slice(0, -10)}</span>
                 <span>{nft.owner.slice(-10)}</span>
-              </p>
+              </div>
               <Link 
                 href={`/address/${nft.owner}`}
                 className="mt-2 w-full inline-flex items-center justify-center px-3 py-1.5 bg-white text-[#8B5CF6] text-sm font-bold rounded-lg border-2 border-[#7C3AED] hover:bg-purple-50 transition-all"
