@@ -130,13 +130,96 @@ const AddressDetail: FC = () => {
     }
   };
 
+  // Extract metadata from URI
+  const getMetadataFromURI = (uri: string | undefined) => {
+    if (!uri) return null;
+    try {
+      const jsonStr = uri.startsWith('data:application/json,') 
+        ? uri.slice('data:application/json,'.length)
+        : uri.split(',')[1];
+      return JSON.parse(jsonStr);
+    } catch {
+      return null;
+    }
+  };
+
+  // Get template info for equipped components
+  const { data: backgroundTemplate } = useReadContract({
+    address: CONTRACT_ADDRESSES.COMPONENT,
+    abi: WeNadsComponentABI,
+    functionName: 'getTokenTemplate',
+    args: [avatar?.backgroundId],
+    query: {
+      enabled: !!avatar?.backgroundId,
+    }
+  }) as { data: bigint | undefined };
+
+  const { data: hairstyleTemplate } = useReadContract({
+    address: CONTRACT_ADDRESSES.COMPONENT,
+    abi: WeNadsComponentABI,
+    functionName: 'getTokenTemplate',
+    args: [avatar?.headId],
+    query: {
+      enabled: !!avatar?.headId,
+    }
+  }) as { data: bigint | undefined };
+
+  const { data: eyesTemplate } = useReadContract({
+    address: CONTRACT_ADDRESSES.COMPONENT,
+    abi: WeNadsComponentABI,
+    functionName: 'getTokenTemplate',
+    args: [avatar?.eyesId],
+    query: {
+      enabled: !!avatar?.eyesId,
+    }
+  }) as { data: bigint | undefined };
+
+  const { data: mouthTemplate } = useReadContract({
+    address: CONTRACT_ADDRESSES.COMPONENT,
+    abi: WeNadsComponentABI,
+    functionName: 'getTokenTemplate',
+    args: [avatar?.mouthId],
+    query: {
+      enabled: !!avatar?.mouthId,
+    }
+  }) as { data: bigint | undefined };
+
+  const { data: accessoryTemplate } = useReadContract({
+    address: CONTRACT_ADDRESSES.COMPONENT,
+    abi: WeNadsComponentABI,
+    functionName: 'getTokenTemplate',
+    args: [avatar?.accessoryId],
+    query: {
+      enabled: !!avatar?.accessoryId,
+    }
+  }) as { data: bigint | undefined };
+
+  // Get template info
+  const { data: templateDetails } = useReadContracts({
+    contracts: [
+      backgroundTemplate,
+      hairstyleTemplate,
+      eyesTemplate,
+      mouthTemplate,
+      accessoryTemplate
+    ].map(templateId => ({
+      address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
+      abi: WeNadsComponentABI as Abi,
+      functionName: 'getTemplate',
+      args: [templateId],
+      query: {
+        enabled: !!templateId,
+      }
+    })),
+  });
+
   // Get component metadata
   const componentURIs = [
-    { uri: backgroundURI, label: 'Background' },
-    { uri: hairstyleURI, label: 'Hairstyle' },
-    { uri: eyesURI, label: 'Eyes' },
-    { uri: mouthURI, label: 'Mouth' },
-    { uri: flowerURI, label: 'Accessory' }
+    { uri: backgroundURI, label: 'Background', template: templateDetails?.[0]?.result as { name: string } | undefined },
+    { uri: hairstyleURI, label: 'Hairstyle', template: templateDetails?.[1]?.result as { name: string } | undefined },
+    { uri: eyesURI, label: 'Eyes', template: templateDetails?.[2]?.result as { name: string } | undefined },
+    { uri: mouthURI, label: 'Mouth', template: templateDetails?.[3]?.result as { name: string } | undefined },
+    { uri: flowerURI, label: 'Accessory', template: templateDetails?.[4]?.result as { name: string } | undefined }
   ];
 
   // Construct avatar image URL
@@ -267,6 +350,29 @@ const AddressDetail: FC = () => {
     return acc;
   }, {} as Record<string, bigint[]>);
 
+  // Get template info for owned components
+  const { data: ownedTemplates } = useReadContracts({
+    contracts: Object.entries(ownedComponents).flatMap(([type, tokens]) => 
+      tokens.map(tokenId => ({
+        address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
+        abi: WeNadsComponentABI as Abi,
+        functionName: 'getTokenTemplate',
+        args: [tokenId],
+      }))
+    ),
+  });
+
+  const { data: templateInfos } = useReadContracts({
+    contracts: ownedTemplates?.flatMap(result => 
+      result.status === 'success' && result.result ? [{
+        address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
+        abi: WeNadsComponentABI as Abi,
+        functionName: 'getTemplate',
+        args: [result.result as bigint],
+      }] : []
+    ) || [],
+  });
+
   // Write contract for name update
   const { writeContractAsync: updateName } = useWriteContract();
 
@@ -394,7 +500,7 @@ const AddressDetail: FC = () => {
             <div className="bg-white rounded-xl p-6 border-4 border-[#8B5CF6] shadow-[8px_8px_0px_0px_#5B21B6] flex flex-col">
               <h2 className="text-xl font-bold text-purple-800 mb-6">Avatar Components</h2>
               <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-4 content-start">
-                {componentURIs.map(({ uri, label }, index) => {
+                {componentURIs.map(({ uri, label, template }, index) => {
                   const imageUrl = getImageFromURI(uri);
                   
                   return (
@@ -415,9 +521,18 @@ const AddressDetail: FC = () => {
                       </div>
                       <div className="text-center">
                         <p className="font-bold text-purple-800 text-sm">{label}</p>
-                        <p className="text-xs text-gray-600">
-                          {uri ? `ID: ${getComponentId(avatar, label)}` : 'Not Set'}
-                        </p>
+                        {uri ? (
+                          <>
+                            <p className="text-sm text-purple-600 font-medium mb-1">
+                              {template?.name || 'Unnamed'}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              ID: {getComponentId(avatar, label)}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-xs text-gray-600">Not Set</p>
+                        )}
                       </div>
                     </div>
                   );
@@ -458,13 +573,29 @@ const AddressDetail: FC = () => {
                       </div>
                       <div className="text-center">
                         <p className="font-bold text-purple-800 text-sm">{type}</p>
-                        <p className="text-xs text-gray-600">
-                          ID: {tokenId.toString()}
-                          <br />
-                          <span className={isEquipped ? "text-green-600 font-bold" : "text-purple-600"}>
-                            {isEquipped ? '(Equipped)' : '(Not Equipped)'}
-                          </span>
-                        </p>
+                        {uri ? (
+                          <>
+                            <p className="text-sm text-purple-600 font-medium mb-1">
+                              {(() => {
+                                const startIndex = Object.entries(ownedComponents)
+                                  .slice(0, Object.keys(ownedComponents).indexOf(type))
+                                  .reduce((sum, [_, tokens]) => sum + tokens.length, 0);
+                                const templateIndex = startIndex + tokenIndex;
+                                const templateInfo = templateInfos?.[templateIndex]?.result as { name: string } | undefined;
+                                return templateInfo?.name || 'Unnamed';
+                              })()}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              ID: {tokenId.toString()}
+                              <br />
+                              <span className={isEquipped ? "text-green-600 font-bold" : "text-purple-600"}>
+                                {isEquipped ? '(Equipped)' : '(Not Equipped)'}
+                              </span>
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-xs text-gray-600">Loading...</p>
+                        )}
                       </div>
                     </div>
                   );
