@@ -24,7 +24,7 @@ const Notification: FC<NotificationProps> = ({ message, type, onClose }) => {
   }[type];
 
   return (
-    <div className={`fixed top-20 right-4 z-50 px-4 py-3 rounded border ${bgColor} flex items-center shadow-lg`}>
+    <div className={`fixed top-20 right-4 z-[9999] px-4 py-3 rounded border ${bgColor} flex items-center shadow-lg`}>
       <span className="mr-2">{message}</span>
       <button
         onClick={onClose}

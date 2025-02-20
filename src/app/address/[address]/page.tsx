@@ -11,6 +11,7 @@ import { WeNadsAvatar } from '@/app/builder/types';
 import { useNotification } from '@/app/contexts/NotificationContext';
 import { useAccount } from 'wagmi';
 import { Abi } from 'viem';
+import NameEditModal from './components/NameEditModal';
 
 type ComponentType = 'background' | 'head' | 'eyes' | 'mouth' | 'accessory';
 
@@ -27,7 +28,6 @@ const AddressDetail: FC = () => {
   const address = params.address as string;
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
-  const [newName, setNewName] = useState('');
   const { showNotification } = useNotification();
   const { address: currentAddress } = useAccount();
   const isOwner = currentAddress?.toLowerCase() === address.toLowerCase();
@@ -54,32 +54,8 @@ const AddressDetail: FC = () => {
     }
   }) as { data: bigint | undefined, isLoading: boolean };
 
-  // Write contract for name update
-  const { writeContractAsync: updateName } = useWriteContract();
-
-  const handleUpdateName = async () => {
-    if (!nftId || !newName.trim()) return;
-
-    try {
-      showNotification('Updating avatar name...', 'info');
-      await updateName({
-        address: CONTRACT_ADDRESSES.AVATAR,
-        abi: WeNadsAvatarABI,
-        functionName: 'updateAvatarName',
-        args: [nftId, newName.trim()],
-      });
-      showNotification('Avatar name updated successfully!', 'success');
-      setIsEditingName(false);
-    } catch (error) {
-      showNotification(
-        error instanceof Error ? error.message : 'Failed to update name',
-        'error'
-      );
-    }
-  };
-
   // Get NFT components if we have an ID
-  const { data: avatar, isLoading: isLoadingAvatar } = useReadContract({
+  const { data: avatar, isLoading: isLoadingAvatar, refetch: refetchAvatar } = useReadContract({
     address: CONTRACT_ADDRESSES.AVATAR,
     abi: WeNadsAvatarABI,
     functionName: 'getAvatar',
@@ -87,9 +63,7 @@ const AddressDetail: FC = () => {
     query: {
       enabled: !!nftId,
     }
-  }) as { data: WeNadsAvatar | undefined, isLoading: boolean };
-
-  console.log('Avatar:', avatar, 'Loading:', isLoadingAvatar);
+  }) as { data: WeNadsAvatar | undefined, isLoading: boolean, refetch: () => Promise<any> };
 
   // Get component URIs
   const { data: backgroundURI } = useReadContract({
@@ -293,6 +267,37 @@ const AddressDetail: FC = () => {
     return acc;
   }, {} as Record<string, bigint[]>);
 
+  // Write contract for name update
+  const { writeContractAsync: updateName } = useWriteContract();
+
+  const handleUpdateName = async (newName: string) => {
+    if (!nftId || !newName.trim()) return;
+
+    try {
+      showNotification('Updating avatar name...', 'info');
+      await updateName({
+        address: CONTRACT_ADDRESSES.AVATAR,
+        abi: WeNadsAvatarABI,
+        functionName: 'updateAvatarName',
+        args: [nftId, newName.trim()],
+      });
+      
+      // Wait for a short delay to allow the blockchain to update
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Refetch the avatar data to get the updated name
+      await refetchAvatar();
+      
+      showNotification('Avatar name updated successfully!', 'success');
+      setIsEditingName(false);
+    } catch (error) {
+      showNotification(
+        error instanceof Error ? error.message : 'Failed to update name',
+        'error'
+      );
+    }
+  };
+
   // Loading state
   if (isLoadingBalance || isLoadingNftId || (nftId && isLoadingAvatar)) {
     return (
@@ -325,19 +330,13 @@ const AddressDetail: FC = () => {
     <div className="min-h-[calc(100vh-86px)] bg-gradient-to-br from-purple-50 to-white">
       <div className="container max-w-7xl mx-auto px-4 py-12">
         <div className="max-w-5xl mx-auto space-y-8">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-black text-purple-800 mb-2">WeNads Avatar</h1>
-            <p className="text-gray-600 break-all">Owner: {address}</p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr,1.5fr] gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr,1fr] gap-8">
             {/* Left Column - Avatar Preview */}
-            <div className="bg-white rounded-xl p-6 border-4 border-[#8B5CF6] shadow-[8px_8px_0px_0px_#5B21B6] h-fit">
-              <div className="space-y-6">
+            <div className="bg-white rounded-xl p-6 border-4 border-[#8B5CF6] shadow-[8px_8px_0px_0px_#5B21B6] flex flex-col">
+              <div className="flex-1 flex flex-col">
                 {/* NFT Preview */}
-                <div className="flex items-center justify-center">
-                  <div className="relative w-full aspect-square bg-purple-50 rounded-lg overflow-hidden border-2 border-purple-200">
+                <div className="flex items-center justify-center flex-1">
+                  <div className="relative w-full max-w-[440px] mx-auto aspect-square bg-purple-50 rounded-lg overflow-hidden border-2 border-purple-200">
                     {imageUrl ? (
                       <Image
                         src={imageUrl}
@@ -354,9 +353,9 @@ const AddressDetail: FC = () => {
                 </div>
 
                 {/* Avatar Info */}
-                <div className="space-y-4">
+                <div className="space-y-4 mt-6 max-w-[440px] mx-auto w-full">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-bold text-purple-800">WeNads #{nftId?.toString() || ''}</h2>
+                    <h2 className="text-base font-medium text-purple-600">WeNads #{nftId?.toString() || ''}</h2>
                     {isOwner && (
                       <button
                         onClick={() => setIsEditingName(true)}
@@ -367,44 +366,27 @@ const AddressDetail: FC = () => {
                     )}
                   </div>
 
-                  {/* Name Edit Form */}
-                  {isEditingName && isOwner ? (
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={newName}
-                        onChange={(e) => setNewName(e.target.value)}
-                        placeholder="Enter new name"
-                        className="flex-1 px-3 py-1.5 rounded-lg border-2 border-purple-200 focus:border-purple-400 outline-none"
-                      />
-                      <button
-                        onClick={handleUpdateName}
-                        className="px-3 py-1.5 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-700"
-                      >
-                        Save
-                      </button>
-                      <button
-                        onClick={() => setIsEditingName(false)}
-                        className="px-3 py-1.5 bg-gray-200 text-gray-600 font-bold rounded-lg hover:bg-gray-300"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="text-gray-600">
-                      Name: {avatar?.name || 'Unnamed'}
+                  <div className="bg-purple-50 p-4 rounded-lg text-center">
+                    <p className="text-2xl font-black text-purple-800 break-all">
+                      {avatar?.name || 'Unnamed WeNad'}
                     </p>
-                  )}
+                  </div>
 
                   {/* Additional Info */}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="space-y-3">
                     <div className="bg-purple-50 p-3 rounded-lg">
-                      <p className="text-purple-600 font-bold">Token ID</p>
-                      <p className="text-gray-600">{nftId?.toString()}</p>
+                      <p className="text-purple-600 font-bold mb-1">Owner</p>
+                      <p className="text-gray-600 break-all">{address}</p>
                     </div>
-                    <div className="bg-purple-50 p-3 rounded-lg">
-                      <p className="text-purple-600 font-bold">Contract</p>
-                      <p className="text-gray-600 truncate">{CONTRACT_ADDRESSES.AVATAR}</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-purple-50 p-3 rounded-lg">
+                        <p className="text-purple-600 font-bold">Token ID</p>
+                        <p className="text-gray-600">{nftId?.toString()}</p>
+                      </div>
+                      <div className="bg-purple-50 p-3 rounded-lg">
+                        <p className="text-purple-600 font-bold">Contract</p>
+                        <p className="text-gray-600 truncate">{CONTRACT_ADDRESSES.AVATAR}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -412,31 +394,31 @@ const AddressDetail: FC = () => {
             </div>
 
             {/* Right Column - Components */}
-            <div className="bg-white rounded-xl p-6 border-4 border-[#8B5CF6] shadow-[8px_8px_0px_0px_#5B21B6]">
+            <div className="bg-white rounded-xl p-6 border-4 border-[#8B5CF6] shadow-[8px_8px_0px_0px_#5B21B6] flex flex-col">
               <h2 className="text-xl font-bold text-purple-800 mb-6">Avatar Components</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+              <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-4 content-start">
                 {componentURIs.map(({ uri, label }, index) => {
                   const imageUrl = getImageFromURI(uri);
                   
                   return (
-                    <div key={index} className="flex flex-col items-center gap-3">
-                      <div className="relative w-full aspect-square bg-white rounded-lg overflow-hidden border-2 border-purple-200">
+                    <div key={index} className="flex flex-col items-center gap-2">
+                      <div className="relative w-full aspect-square bg-white rounded-lg overflow-hidden border border-purple-200">
                         {imageUrl ? (
                           <Image
                             src={imageUrl}
                             alt={`${label} Component`}
                             fill
-                            className="object-contain p-2"
+                            className="object-contain p-1"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <p className="text-sm text-purple-400 font-medium text-center px-2">No {label}</p>
+                            <p className="text-xs text-purple-400 font-medium text-center px-1">No {label}</p>
                           </div>
                         )}
                       </div>
                       <div className="text-center">
-                        <p className="font-bold text-purple-800">{label}</p>
-                        <p className="text-sm text-gray-600">
+                        <p className="font-bold text-purple-800 text-sm">{label}</p>
+                        <p className="text-xs text-gray-600">
                           {uri ? `ID: ${getComponentId(avatar, label)}` : 'Not Set'}
                         </p>
                       </div>
@@ -495,6 +477,15 @@ const AddressDetail: FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Name Edit Modal */}
+      {isEditingName && isOwner && (
+        <NameEditModal
+          onClose={() => setIsEditingName(false)}
+          onSave={handleUpdateName}
+          currentName={avatar?.name || ''}
+        />
+      )}
     </div>
   );
 };
