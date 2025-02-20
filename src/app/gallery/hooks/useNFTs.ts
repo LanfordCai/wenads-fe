@@ -13,11 +13,6 @@ export interface NFTMetadata {
   isImageLoading: boolean;
 }
 
-interface CachedNFT {
-  id: string;
-  owner: string;
-}
-
 export function useNFTs() {
   const [nfts, setNfts] = useState<NFTMetadata[]>([]);
   const [isLoading, setIsLoading] = useState(false);

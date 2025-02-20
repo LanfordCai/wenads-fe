@@ -63,7 +63,7 @@ const AddressDetail: FC = () => {
     query: {
       enabled: !!nftId,
     }
-  }) as { data: WeNadsAvatar | undefined, isLoading: boolean, refetch: () => Promise<any> };
+  }) as { data: WeNadsAvatar | undefined, isLoading: boolean, refetch: () => Promise<{ data: WeNadsAvatar | undefined }> };
 
   // Batch all component token template calls in one go
   const { data: componentTemplates } = useReadContracts({
@@ -159,7 +159,7 @@ const AddressDetail: FC = () => {
 
   // Get all owned tokens in one batch
   const { data: ownedTokens } = useReadContracts({
-    contracts: allTemplates?.flatMap((result, typeIndex) => 
+    contracts: allTemplates?.flatMap((result) => 
       result.status === 'success' 
         ? (result.result as bigint[]).map(templateId => ({
             address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
@@ -210,19 +210,20 @@ const AddressDetail: FC = () => {
   });
 
   // Organize owned components data
-  const ownedComponentsByType = ['Background', 'Hairstyle', 'Eyes', 'Mouth', 'Accessory'].reduce((acc, type, typeIndex) => {
+  const ownedComponentsByType = ['Background', 'Hairstyle', 'Eyes', 'Mouth', 'Accessory'].reduce((acc, type) => {
+    const typeIndex = ['Background', 'Hairstyle', 'Eyes', 'Mouth', 'Accessory'].indexOf(type);
     const templates = allTemplates?.[typeIndex]?.result as bigint[] | undefined;
     if (!templates) return acc;
 
     const startIndex = allTemplates?.slice(0, typeIndex).reduce((sum, result) => 
       sum + ((result.status === 'success' ? result.result as bigint[] : []).length), 0) || 0;
 
-    const typeTokens = templates.map((_, index) => {
-      const tokenResult = ownedTokens?.[startIndex + index];
+    const typeTokens = templates.map((_, i) => {
+      const tokenResult = ownedTokens?.[startIndex + i];
       return tokenResult?.status === 'success' ? tokenResult.result as bigint : undefined;
     }).filter((token): token is bigint => token !== undefined);
 
-    acc[type] = typeTokens.map((tokenId, tokenIndex) => {
+    acc[type] = typeTokens.map(tokenId => {
       const dataIndex = Object.values(acc).flat().length * 2;
       const uri = ownedTokenData?.[dataIndex]?.result as string;
       const templateInfo = ownedTemplateDetails?.[Object.values(acc).flat().length]?.result as { name: string } | undefined;
@@ -262,24 +263,6 @@ const AddressDetail: FC = () => {
 
     fetchTokenURI();
   }, [avatar, nftId, publicClient]);
-
-  const getComponentId = (avatar: WeNadsAvatar | undefined, label: string) => {
-    if (!avatar) return '';
-    switch (label) {
-      case 'Background':
-        return avatar.backgroundId?.toString();
-      case 'Hairstyle':
-        return avatar.headId?.toString();
-      case 'Eyes':
-        return avatar.eyesId?.toString();
-      case 'Mouth':
-        return avatar.mouthId?.toString();
-      case 'Accessory':
-        return avatar.accessoryId?.toString();
-      default:
-        return '';
-    }
-  };
 
   // Write contract for name update
   const { writeContractAsync: updateName } = useWriteContract();
@@ -330,7 +313,7 @@ const AddressDetail: FC = () => {
         <div className="container max-w-7xl mx-auto px-4 py-12">
           <div className="text-center">
             <h1 className="text-2xl font-black text-purple-800 mb-2">Address Details</h1>
-            <p className="text-gray-600">This address doesn't own a WeNads NFT</p>
+            <p className="text-gray-600">This address doesn&apos;t own a WeNads NFT</p>
           </div>
         </div>
       </div>
@@ -408,39 +391,28 @@ const AddressDetail: FC = () => {
             <div className="bg-white rounded-xl p-6 border-4 border-[#8B5CF6] shadow-[8px_8px_0px_0px_#5B21B6] flex flex-col">
               <h2 className="text-xl font-bold text-purple-800 mb-6">Avatar Components</h2>
               <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-4 content-start">
-                {componentData.map(({ label, uri, template }, index) => {
+                {componentData.map(({ label, uri, template }) => {
                   const imageUrl = getImageFromURI(uri);
                   
                   return (
-                    <div key={index} className="flex flex-col items-center gap-2">
+                    <div key={label} className="flex flex-col items-center gap-2">
                       <div className="relative w-full aspect-square bg-white rounded-lg overflow-hidden border border-purple-200">
                         {imageUrl ? (
                           <Image
                             src={imageUrl}
-                            alt={`${label} Component`}
+                            alt={template?.name || label}
                             fill
-                            className="object-contain p-1"
+                            className="object-contain"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <p className="text-xs text-purple-400 font-medium text-center px-1">No {label}</p>
+                          <div className="w-full h-full flex items-center justify-center text-gray-400">
+                            No Image
                           </div>
                         )}
                       </div>
                       <div className="text-center">
-                        <p className="font-bold text-purple-800 text-sm">{label}</p>
-                        {uri ? (
-                          <>
-                            <p className="text-sm text-purple-600 font-medium mb-1">
-                              {template?.name || 'Unnamed'}
-                            </p>
-                            <p className="text-xs text-gray-600">
-                              ID: {getComponentId(avatar, label)}
-                            </p>
-                          </>
-                        ) : (
-                          <p className="text-xs text-gray-600">Not Set</p>
-                        )}
+                        <div className="font-bold text-purple-800">{label}</div>
+                        <div className="text-sm text-gray-600">{template?.name || 'Unknown'}</div>
                       </div>
                     </div>
                   );
@@ -454,7 +426,7 @@ const AddressDetail: FC = () => {
             <h2 className="text-xl font-bold text-purple-800 mb-6">All Owned Components</h2>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
               {Object.entries(ownedComponentsByType).map(([type, components]) => 
-                components.map(({ tokenId, uri, template }, index) => {
+                components.map(({ tokenId, uri, template }) => {
                   const imageUrl = getImageFromURI(uri);
                   const isEquipped = avatar?.[`${COMPONENT_MAPPING[type]}Id`]?.toString() === tokenId.toString();
                   
