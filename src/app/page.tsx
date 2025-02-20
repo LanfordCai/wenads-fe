@@ -16,7 +16,12 @@ export default function HomePage() {
                   loop
                   muted
                   playsInline
+                  preload="auto"
                   className="absolute inset-0 w-full h-full object-contain"
+                  onCanPlay={(e) => {
+                    const video = e.target as HTMLVideoElement;
+                    video.play().catch(error => console.log("Video play error:", error));
+                  }}
                 >
                   <source src="/home.webm" type="video/webm" />
                 </video>
