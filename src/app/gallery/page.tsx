@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useNFTs } from './hooks/useNFTs';
 import Image from 'next/image';
+import Link from 'next/link';
 import NFTDetailModal from './components/NFTDetailModal';
 
 export default function NFTsPage() {
@@ -59,6 +60,13 @@ export default function NFTsPage() {
                 <span className="min-w-0 truncate">Owner: {nft.owner.slice(0, -10)}</span>
                 <span>{nft.owner.slice(-10)}</span>
               </p>
+              <Link 
+                href={`/address/${nft.owner}`}
+                className="mt-2 w-full inline-flex items-center justify-center px-3 py-1.5 bg-white text-[#8B5CF6] text-sm font-bold rounded-lg border-2 border-[#7C3AED] hover:bg-purple-50 transition-all"
+                onClick={(e) => e.stopPropagation()}
+              >
+                View Details
+              </Link>
             </div>
           </div>
         ))}
