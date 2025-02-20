@@ -212,12 +212,6 @@ const AvatarEditor: FC<AvatarEditorProps> = ({
           {isProcessing ? '🔥 BURNING...' : isLoading ? '⌛ LOADING...' : '🔥 BURN NFT'}
         </button>
       )}
-
-      <div className="max-w-[600px] text-sm text-purple-700 bg-purple-50 p-4 rounded-xl border-2 border-purple-200">
-        <p>
-          WeNads is a Soulbound Token (SBT) collection with a unique twist: each wallet address is entitled to only one NFT. Breaking away from traditional SBT constraints, WeNads empowers you to customize your avatar&apos;s components whenever inspiration strikes! What sets us apart? Each component exists as a tradeable NFT, and here&apos;s what makes it special: you can design, mint, and market your own component templates, fostering a genuinely community-driven ecosystem. Best of all, every asset lives permanently on-chain!🔥
-        </p>
-      </div>
     </div>
   );
 };

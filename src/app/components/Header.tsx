@@ -29,7 +29,7 @@ export default function Header() {
     <>
       <Link 
         href="/builder" 
-        className={`text-white font-medium px-4 py-2 rounded-lg transition-colors ${
+        className={`text-white font-bold px-4 py-2 rounded-lg transition-colors ${
           isActive('/builder') 
             ? 'bg-[#7C3AED] shadow-inner' 
             : 'hover:bg-[#7C3AED]/30'
@@ -40,7 +40,7 @@ export default function Header() {
       </Link>
       <Link 
         href="/gallery" 
-        className={`text-white font-medium px-4 py-2 rounded-lg transition-colors ${
+        className={`text-white font-bold px-4 py-2 rounded-lg transition-colors ${
           isActive('/gallery') 
             ? 'bg-[#7C3AED] shadow-inner' 
             : 'hover:bg-[#7C3AED]/30'

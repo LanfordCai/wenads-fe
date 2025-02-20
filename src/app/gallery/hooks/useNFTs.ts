@@ -24,9 +24,12 @@ export function useNFTs() {
   const publicClient = usePublicClient();
   const currentIndexRef = useRef<number>(0);
   const totalSupplyRef = useRef<number>(0);
-  const isInitialLoad = useRef<boolean>(true);
+  const mountedRef = useRef<boolean>(false);
+  const initialLoadStartedRef = useRef<boolean>(false);
 
   const loadImage = useCallback(async (tokenId: bigint, nftIndex: number) => {
+    if (!mountedRef.current) return;
+    
     try {
       const uri = await publicClient?.readContract({
         address: AVATAR_CONTRACT,
@@ -38,6 +41,8 @@ export function useNFTs() {
       const response = await fetch(uri);
       const metadata = await response.json();
       
+      if (!mountedRef.current) return;
+
       setNfts(current => current.map((nft, index) => 
         index === nftIndex 
           ? { ...nft, imageUrl: metadata.image || null, isImageLoading: false }
@@ -45,6 +50,8 @@ export function useNFTs() {
       ));
     } catch (error) {
       console.error('Error loading image:', error);
+      if (!mountedRef.current) return;
+      
       setNfts(current => current.map((nft, index) => 
         index === nftIndex 
           ? { ...nft, isImageLoading: false }
@@ -54,23 +61,29 @@ export function useNFTs() {
   }, [publicClient]);
 
   const loadMoreNFTs = useCallback(async () => {
-    if (!publicClient || isLoading) return;
+    if (!publicClient || isLoading || !mountedRef.current) return;
 
     setIsLoading(true);
 
     try {
-      // Get total supply on first load
-      if (isInitialLoad.current) {
+      // Get total supply if not already loaded
+      if (totalSupplyRef.current === 0) {
         const totalSupply = await publicClient.readContract({
           address: AVATAR_CONTRACT,
           abi: WeNadsAvatarABI,
           functionName: 'totalSupply',
         }) as bigint;
         totalSupplyRef.current = Number(totalSupply);
-        isInitialLoad.current = false;
       }
 
       const endIndex = Math.min(currentIndexRef.current + ITEMS_PER_PAGE, totalSupplyRef.current);
+      
+      // Don't proceed if we're at the end
+      if (currentIndexRef.current >= endIndex) {
+        setHasMore(false);
+        return;
+      }
+
       const newNFTs: NFTMetadata[] = [];
 
       // Fetch token IDs and owners in batches
@@ -103,6 +116,8 @@ export function useNFTs() {
 
       const owners = await Promise.all(ownerPromises);
 
+      if (!mountedRef.current) return;
+
       // Create new NFT objects
       tokenIds.forEach((tokenId, index) => {
         newNFTs.push({
@@ -113,27 +128,39 @@ export function useNFTs() {
         });
       });
 
-      setNfts(current => [...current, ...newNFTs]);
+      setNfts(current => {
+        const updatedNFTs = [...current, ...newNFTs];
+        // Load images for new NFTs
+        newNFTs.forEach((nft, index) => {
+          const globalIndex = current.length + index;
+          loadImage(BigInt(nft.id), globalIndex);
+        });
+        return updatedNFTs;
+      });
+      
       currentIndexRef.current = endIndex;
       setHasMore(endIndex < totalSupplyRef.current);
-
-      // Load images for new NFTs
-      newNFTs.forEach((nft, index) => {
-        const globalIndex = nfts.length + index;
-        loadImage(BigInt(nft.id), globalIndex);
-      });
     } catch (error) {
       console.error('Error loading NFTs:', error);
     } finally {
-      setIsLoading(false);
+      if (mountedRef.current) {
+        setIsLoading(false);
+      }
     }
-  }, [publicClient, isLoading, loadImage, nfts.length]);
+  }, [publicClient, isLoading, loadImage]);
 
-  // Load initial NFTs
+  // Handle initialization and cleanup
   useEffect(() => {
-    if (isInitialLoad.current && publicClient) {
+    mountedRef.current = true;
+
+    if (publicClient && !initialLoadStartedRef.current) {
+      initialLoadStartedRef.current = true;
       loadMoreNFTs();
     }
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [publicClient, loadMoreNFTs]);
 
   return { 
