@@ -302,11 +302,8 @@ const AddressDetail: FC = () => {
   if (isLoadingBalance || isLoadingNftId || (nftId && isLoadingAvatar)) {
     return (
       <div className="min-h-[calc(100vh-86px)] bg-gradient-to-br from-purple-50 to-white">
-        <div className="container max-w-7xl mx-auto px-4 py-12">
-          <div className="text-center">
-            <h1 className="text-2xl font-black text-purple-800 mb-2">Address Details</h1>
-            <p className="text-purple-600 font-bold">Loading...</p>
-          </div>
+        <div className="container max-w-7xl mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
+          <div className="text-2xl font-black text-purple-600">Loading...</div>
         </div>
       </div>
     );

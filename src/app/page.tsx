@@ -30,11 +30,11 @@ export default function HomePage() {
               <div className="space-y-4">
                 <h1 className="text-4xl md:text-5xl font-black text-purple-800 leading-tight">
                   Create Your Unique
-                  <span className="block text-[#8B5CF6] mt-2">NFT Avatar</span>
+                  <span className="block text-[#8B5CF6] mt-2">SBT Avatar</span>
                 </h1>
                 
                 <p className="text-lg text-gray-600">
-                  Express yourself with customizable NFT avatars. Mix and match components to create a truly unique digital identity.
+                  Express yourself with customizable SBT avatars. Mix and match components to create a truly unique digital identity.
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-6">
