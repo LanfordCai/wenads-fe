@@ -9,7 +9,7 @@ export default function HomePage() {
         <div className="flex flex-col md:flex-row">
           {/* Video Section */}
           <div className="w-full md:w-1/2 flex items-center justify-center p-4">
-            <div className="w-full max-w-[600px] relative rounded-2xl border-4 border-[#8B5CF6] shadow-[8px_8px_0px_0px_#5B21B6] bg-black overflow-hidden">
+            <div className="w-full max-w-[600px] relative rounded-2xl border-4 border-[#8B5CF6] shadow-[8px_8px_0px_0px_#5B21B6] bg-purple-50 overflow-hidden">
               <div className="pb-[100%]">
                 <video
                   autoPlay
