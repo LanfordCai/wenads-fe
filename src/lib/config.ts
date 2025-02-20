@@ -5,27 +5,26 @@ import { Chain, getDefaultConfig } from '@rainbow-me/rainbowkit';
 
 const projectId = "921cf368c71f05173975042277cba39f";
 
-export const monadDevnet = {
-  id: 20143,
-  name: 'Monad Devnet',
+export const monadTestnet = {
+  id: 10143,
+  name: 'Monad Testnet',
   nativeCurrency: {
     decimals: 18,
-    name: 'Devnet Monad',
-    symbol: 'DMON',
+    name: 'Testnet Monad',
+    symbol: 'TMON',
   },
   rpcUrls: {
     default: {
-      http: ['https://rpc-devnet.monadinfra.com/rpc/3fe540e310bbb6ef0b9f16cd23073b0a'],
+      http: [process.env.NEXT_PUBLIC_TESTNET_RPC_URL as string],
     },
     public: {
-      http: ['https://rpc-devnet.monadinfra.com/rpc/3fe540e310bbb6ef0b9f16cd23073b0a'],
+      http: [process.env.NEXT_PUBLIC_TESTNET_RPC_URL as string],
     },
   },
   blockExplorers: {
     default: {
       name: 'Monad Explorer',
-      url: 'https://explorer.monad-devnet.devnet101.com/',
-      apiUrl: 'https://explorer.monad-devnet.devnet101.com/api',
+      url: 'https://monad-testnet.socialscan.io/'
     },
   },
 } as const satisfies Chain;
@@ -54,15 +53,15 @@ export const hardhatLocal = {
   },
 } as const satisfies Chain;
 
-const supportedChains: Chain[] = [monadDevnet];
-
 export const config = getDefaultConfig({
   appName: "WalletConnection",
   projectId,
-  chains: [monadDevnet],
+  chains: [monadTestnet],
   ssr: true,
   storage: createStorage({
     storage: cookieStorage,
   }),
-  transports: supportedChains.reduce((obj, chain) => ({ ...obj, [chain.id]: http() }), {})
+  transports: {
+    [monadTestnet.id]: http(process.env.NEXT_PUBLIC_TESTNET_RPC_URL)
+  }
 });

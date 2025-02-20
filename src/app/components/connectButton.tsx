@@ -19,11 +19,15 @@ export const ConnectBtn = () => {
     isMounted.current = true;
   }, []);
 
+  if (!isMounted.current) {
+    return null;
+  }
+
   if (!isConnected) {
     return (
       <button
         className="px-4 py-1.5 md:px-6 md:py-2 bg-[#8B5CF6] text-white text-sm md:text-base font-bold rounded-xl border-4 border-[#7C3AED] shadow-[4px_4px_0px_0px_#5B21B6] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#5B21B6] transition-all"
-        onClick={async () => {
+        onClick={() => {
           if (isConnected) {
             disconnect();
           }

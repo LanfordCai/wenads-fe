@@ -27,7 +27,7 @@ const ComponentSelector: FC<ComponentSelectorProps> = ({
   const { showNotification } = useNotification();
 
   const formatPrice = (price: bigint) => {
-    return (Number(price) / 1e18).toFixed(2);
+    return price === BigInt(0) ? 'FREE' : `${(Number(price) / 1e18).toFixed(2)} MON`;
   };
 
   const handleMouseDown = (e: MouseEvent<HTMLDivElement>) => {
@@ -126,7 +126,7 @@ const ComponentSelector: FC<ComponentSelectorProps> = ({
                   </div>
                   <div className="mt-1 space-y-1">
                     <div className="text-center bg-purple-100 text-[#8B5CF6] text-xs font-bold py-1 px-2 rounded-lg">
-                      {formatPrice(template.price)} MON
+                      {formatPrice(template.price)}
                     </div>
                     <button
                       onClick={() => setSelectedTemplate(template)}
