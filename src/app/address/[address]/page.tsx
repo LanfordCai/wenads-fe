@@ -65,56 +65,60 @@ const AddressDetail: FC = () => {
     }
   }) as { data: WeNadsAvatar | undefined, isLoading: boolean, refetch: () => Promise<any> };
 
-  // Get component URIs
-  const { data: backgroundURI } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT,
-    abi: WeNadsComponentABI,
-    functionName: 'uri',
-    args: [avatar?.backgroundId],
+  // Batch all component token template calls in one go
+  const { data: componentTemplates } = useReadContracts({
+    contracts: [
+      avatar?.backgroundId,
+      avatar?.headId,
+      avatar?.eyesId,
+      avatar?.mouthId,
+      avatar?.accessoryId
+    ].filter(Boolean).map(tokenId => ({
+      address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
+      abi: WeNadsComponentABI as Abi,
+      functionName: 'getTokenTemplate',
+      args: [tokenId],
+    })),
     query: {
-      enabled: !!avatar?.backgroundId,
+      enabled: !!avatar,
     }
-  }) as { data: string | undefined };
+  });
 
-  const { data: hairstyleURI } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT,
-    abi: WeNadsComponentABI,
-    functionName: 'uri',
-    args: [avatar?.headId],
+  // Batch all template info calls
+  const { data: templateDetails } = useReadContracts({
+    contracts: (componentTemplates?.map(result => 
+      result.status === 'success' && result.result 
+        ? {
+            address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
+            abi: WeNadsComponentABI as Abi,
+            functionName: 'getTemplate',
+            args: [result.result as bigint],
+          }
+        : undefined
+    ).filter((contract): contract is NonNullable<typeof contract> => contract !== undefined)) || [],
     query: {
-      enabled: !!avatar?.headId,
+      enabled: !!componentTemplates?.length,
     }
-  }) as { data: string | undefined };
+  });
 
-  const { data: eyesURI } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT,
-    abi: WeNadsComponentABI,
-    functionName: 'uri',
-    args: [avatar?.eyesId],
+  // Batch all URI calls
+  const { data: componentURIs } = useReadContracts({
+    contracts: [
+      avatar?.backgroundId,
+      avatar?.headId,
+      avatar?.eyesId,
+      avatar?.mouthId,
+      avatar?.accessoryId
+    ].filter(Boolean).map(tokenId => ({
+      address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
+      abi: WeNadsComponentABI as Abi,
+      functionName: 'uri',
+      args: [tokenId],
+    })),
     query: {
-      enabled: !!avatar?.eyesId,
+      enabled: !!avatar,
     }
-  }) as { data: string | undefined };
-
-  const { data: mouthURI } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT,
-    abi: WeNadsComponentABI,
-    functionName: 'uri',
-    args: [avatar?.mouthId],
-    query: {
-      enabled: !!avatar?.mouthId,
-    }
-  }) as { data: string | undefined };
-
-  const { data: flowerURI } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT,
-    abi: WeNadsComponentABI,
-    functionName: 'uri',
-    args: [avatar?.accessoryId],
-    query: {
-      enabled: !!avatar?.accessoryId,
-    }
-  }) as { data: string | undefined };
+  });
 
   // Extract image URLs from base64 URIs
   const getImageFromURI = (uri: string | undefined) => {
@@ -130,97 +134,108 @@ const AddressDetail: FC = () => {
     }
   };
 
-  // Extract metadata from URI
-  const getMetadataFromURI = (uri: string | undefined) => {
-    if (!uri) return null;
-    try {
-      const jsonStr = uri.startsWith('data:application/json,') 
-        ? uri.slice('data:application/json,'.length)
-        : uri.split(',')[1];
-      return JSON.parse(jsonStr);
-    } catch {
-      return null;
-    }
-  };
+  // Organize component data
+  const componentData = [
+    { label: 'Background', tokenId: avatar?.backgroundId },
+    { label: 'Hairstyle', tokenId: avatar?.headId },
+    { label: 'Eyes', tokenId: avatar?.eyesId },
+    { label: 'Mouth', tokenId: avatar?.mouthId },
+    { label: 'Accessory', tokenId: avatar?.accessoryId }
+  ].map((component, index) => ({
+    ...component,
+    uri: componentURIs?.[index]?.result as string | undefined,
+    template: templateDetails?.[index]?.result as { name: string } | undefined
+  }));
 
-  // Get template info for equipped components
-  const { data: backgroundTemplate } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT,
-    abi: WeNadsComponentABI,
-    functionName: 'getTokenTemplate',
-    args: [avatar?.backgroundId],
-    query: {
-      enabled: !!avatar?.backgroundId,
-    }
-  }) as { data: bigint | undefined };
-
-  const { data: hairstyleTemplate } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT,
-    abi: WeNadsComponentABI,
-    functionName: 'getTokenTemplate',
-    args: [avatar?.headId],
-    query: {
-      enabled: !!avatar?.headId,
-    }
-  }) as { data: bigint | undefined };
-
-  const { data: eyesTemplate } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT,
-    abi: WeNadsComponentABI,
-    functionName: 'getTokenTemplate',
-    args: [avatar?.eyesId],
-    query: {
-      enabled: !!avatar?.eyesId,
-    }
-  }) as { data: bigint | undefined };
-
-  const { data: mouthTemplate } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT,
-    abi: WeNadsComponentABI,
-    functionName: 'getTokenTemplate',
-    args: [avatar?.mouthId],
-    query: {
-      enabled: !!avatar?.mouthId,
-    }
-  }) as { data: bigint | undefined };
-
-  const { data: accessoryTemplate } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT,
-    abi: WeNadsComponentABI,
-    functionName: 'getTokenTemplate',
-    args: [avatar?.accessoryId],
-    query: {
-      enabled: !!avatar?.accessoryId,
-    }
-  }) as { data: bigint | undefined };
-
-  // Get template info
-  const { data: templateDetails } = useReadContracts({
-    contracts: [
-      backgroundTemplate,
-      hairstyleTemplate,
-      eyesTemplate,
-      mouthTemplate,
-      accessoryTemplate
-    ].map(templateId => ({
+  // Get all templates of each type in one batch
+  const { data: allTemplates } = useReadContracts({
+    contracts: [0, 1, 2, 3, 4].map(type => ({
       address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
       abi: WeNadsComponentABI as Abi,
-      functionName: 'getTemplate',
-      args: [templateId],
-      query: {
-        enabled: !!templateId,
-      }
+      functionName: 'getTemplatesOfType',
+      args: [type],
     })),
   });
 
-  // Get component metadata
-  const componentURIs = [
-    { uri: backgroundURI, label: 'Background', template: templateDetails?.[0]?.result as { name: string } | undefined },
-    { uri: hairstyleURI, label: 'Hairstyle', template: templateDetails?.[1]?.result as { name: string } | undefined },
-    { uri: eyesURI, label: 'Eyes', template: templateDetails?.[2]?.result as { name: string } | undefined },
-    { uri: mouthURI, label: 'Mouth', template: templateDetails?.[3]?.result as { name: string } | undefined },
-    { uri: flowerURI, label: 'Accessory', template: templateDetails?.[4]?.result as { name: string } | undefined }
-  ];
+  // Get all owned tokens in one batch
+  const { data: ownedTokens } = useReadContracts({
+    contracts: allTemplates?.flatMap((result, typeIndex) => 
+      result.status === 'success' 
+        ? (result.result as bigint[]).map(templateId => ({
+            address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
+            abi: WeNadsComponentABI as Abi,
+            functionName: 'getUserTemplateToken',
+            args: [address, templateId] as [string, bigint],
+          }))
+        : []
+    ) || [],
+  });
+
+  // Get URIs and template info for owned tokens in one batch
+  const { data: ownedTokenData } = useReadContracts({
+    contracts: ownedTokens?.flatMap(result => 
+      result.status === 'success' && result.result 
+        ? [
+            {
+              address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
+              abi: WeNadsComponentABI as Abi,
+              functionName: 'uri',
+              args: [result.result as bigint],
+            },
+            {
+              address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
+              abi: WeNadsComponentABI as Abi,
+              functionName: 'getTokenTemplate',
+              args: [result.result as bigint],
+            }
+          ]
+        : []
+    ) || [],
+  });
+
+  // Get template details for owned tokens
+  const { data: ownedTemplateDetails } = useReadContracts({
+    contracts: (ownedTokenData?.filter((_, index) => index % 2 === 1)
+      .map(result =>
+        result.status === 'success' && result.result
+          ? {
+              address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
+              abi: WeNadsComponentABI as Abi,
+              functionName: 'getTemplate',
+              args: [result.result as bigint],
+            }
+          : undefined
+      )
+      .filter((contract): contract is NonNullable<typeof contract> => contract !== undefined)) || [],
+  });
+
+  // Organize owned components data
+  const ownedComponentsByType = ['Background', 'Hairstyle', 'Eyes', 'Mouth', 'Accessory'].reduce((acc, type, typeIndex) => {
+    const templates = allTemplates?.[typeIndex]?.result as bigint[] | undefined;
+    if (!templates) return acc;
+
+    const startIndex = allTemplates?.slice(0, typeIndex).reduce((sum, result) => 
+      sum + ((result.status === 'success' ? result.result as bigint[] : []).length), 0) || 0;
+
+    const typeTokens = templates.map((_, index) => {
+      const tokenResult = ownedTokens?.[startIndex + index];
+      return tokenResult?.status === 'success' ? tokenResult.result as bigint : undefined;
+    }).filter((token): token is bigint => token !== undefined);
+
+    acc[type] = typeTokens.map((tokenId, tokenIndex) => {
+      const dataIndex = Object.values(acc).flat().length * 2;
+      const uri = ownedTokenData?.[dataIndex]?.result as string;
+      const templateInfo = ownedTemplateDetails?.[Object.values(acc).flat().length]?.result as { name: string } | undefined;
+      
+      return {
+        tokenId,
+        uri,
+        template: templateInfo,
+      };
+    });
+
+    return acc;
+  }, {} as Record<string, Array<{ tokenId: bigint, uri: string | undefined, template: { name: string } | undefined }>>);
 
   // Construct avatar image URL
   useEffect(() => {
@@ -265,113 +280,6 @@ const AddressDetail: FC = () => {
         return '';
     }
   };
-
-  // Get all templates of each type
-  const { data: backgroundTemplates } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
-    abi: WeNadsComponentABI as Abi,
-    functionName: 'getTemplatesOfType',
-    args: [0], // Background type
-  }) as { data: bigint[] | undefined };
-
-  const { data: hairstyleTemplates } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
-    abi: WeNadsComponentABI as Abi,
-    functionName: 'getTemplatesOfType',
-    args: [1], // Hairstyle type
-  }) as { data: bigint[] | undefined };
-
-  const { data: eyesTemplates } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
-    abi: WeNadsComponentABI as Abi,
-    functionName: 'getTemplatesOfType',
-    args: [2], // Eyes type
-  }) as { data: bigint[] | undefined };
-
-  const { data: mouthTemplates } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
-    abi: WeNadsComponentABI as Abi,
-    functionName: 'getTemplatesOfType',
-    args: [3], // Mouth type
-  }) as { data: bigint[] | undefined };
-
-  const { data: accessoryTemplates } = useReadContract({
-    address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
-    abi: WeNadsComponentABI as Abi,
-    functionName: 'getTemplatesOfType',
-    args: [4], // Accessory type
-  }) as { data: bigint[] | undefined };
-
-  // Get all owned tokens for each template
-  const templatesByType = {
-    'Background': backgroundTemplates,
-    'Hairstyle': hairstyleTemplates,
-    'Eyes': eyesTemplates,
-    'Mouth': mouthTemplates,
-    'Accessory': accessoryTemplates,
-  };
-
-  // Get token IDs for all templates
-  const { data: ownedTokens } = useReadContracts({
-    contracts: Object.entries(templatesByType).flatMap(([type, templates]) => 
-      (templates || []).map(templateId => ({
-        address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
-        abi: WeNadsComponentABI as Abi,
-        functionName: 'getUserTemplateToken',
-        args: [address, templateId] as [string, bigint],
-      }))
-    ),
-  });
-
-  // Get URIs for all owned tokens
-  const { data: tokenURIs } = useReadContracts({
-    contracts: ownedTokens?.flatMap(result => 
-      result.status === 'success' && result.result ? [{
-        address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
-        abi: WeNadsComponentABI as Abi,
-        functionName: 'uri',
-        args: [result.result as bigint],
-      }] : []
-    ) || [],
-  });
-
-  // Organize owned components by type
-  const ownedComponents = Object.entries(templatesByType).reduce((acc, [type, templates]) => {
-    const startIndex = Object.entries(templatesByType)
-      .slice(0, Object.keys(templatesByType).indexOf(type))
-      .reduce((sum, [_, templates]) => sum + (templates?.length || 0), 0);
-    
-    const typeTokens = (templates || []).map((_, index) => {
-      const result = ownedTokens?.[startIndex + index];
-      return result?.status === 'success' ? result.result as bigint : undefined;
-    }).filter((token): token is bigint => token !== undefined);
-
-    acc[type] = typeTokens;
-    return acc;
-  }, {} as Record<string, bigint[]>);
-
-  // Get template info for owned components
-  const { data: ownedTemplates } = useReadContracts({
-    contracts: Object.entries(ownedComponents).flatMap(([type, tokens]) => 
-      tokens.map(tokenId => ({
-        address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
-        abi: WeNadsComponentABI as Abi,
-        functionName: 'getTokenTemplate',
-        args: [tokenId],
-      }))
-    ),
-  });
-
-  const { data: templateInfos } = useReadContracts({
-    contracts: ownedTemplates?.flatMap(result => 
-      result.status === 'success' && result.result ? [{
-        address: CONTRACT_ADDRESSES.COMPONENT as `0x${string}`,
-        abi: WeNadsComponentABI as Abi,
-        functionName: 'getTemplate',
-        args: [result.result as bigint],
-      }] : []
-    ) || [],
-  });
 
   // Write contract for name update
   const { writeContractAsync: updateName } = useWriteContract();
@@ -500,7 +408,7 @@ const AddressDetail: FC = () => {
             <div className="bg-white rounded-xl p-6 border-4 border-[#8B5CF6] shadow-[8px_8px_0px_0px_#5B21B6] flex flex-col">
               <h2 className="text-xl font-bold text-purple-800 mb-6">Avatar Components</h2>
               <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-4 content-start">
-                {componentURIs.map(({ uri, label, template }, index) => {
+                {componentData.map(({ label, uri, template }, index) => {
                   const imageUrl = getImageFromURI(uri);
                   
                   return (
@@ -545,13 +453,8 @@ const AddressDetail: FC = () => {
           <div className="bg-white rounded-xl p-6 border-4 border-[#8B5CF6] shadow-[8px_8px_0px_0px_#5B21B6]">
             <h2 className="text-xl font-bold text-purple-800 mb-6">All Owned Components</h2>
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
-              {Object.entries(ownedComponents).map(([type, tokens]) => 
-                tokens.map((tokenId, tokenIndex) => {
-                  const uriIndex = Object.entries(ownedComponents)
-                    .slice(0, Object.keys(ownedComponents).indexOf(type))
-                    .reduce((sum, [_, tokens]) => sum + tokens.length, 0) + tokenIndex;
-                  
-                  const uri = tokenURIs?.[uriIndex]?.result as string | undefined;
+              {Object.entries(ownedComponentsByType).map(([type, components]) => 
+                components.map(({ tokenId, uri, template }, index) => {
                   const imageUrl = getImageFromURI(uri);
                   const isEquipped = avatar?.[`${COMPONENT_MAPPING[type]}Id`]?.toString() === tokenId.toString();
                   
@@ -576,14 +479,7 @@ const AddressDetail: FC = () => {
                         {uri ? (
                           <>
                             <p className="text-sm text-purple-600 font-medium mb-1">
-                              {(() => {
-                                const startIndex = Object.entries(ownedComponents)
-                                  .slice(0, Object.keys(ownedComponents).indexOf(type))
-                                  .reduce((sum, [_, tokens]) => sum + tokens.length, 0);
-                                const templateIndex = startIndex + tokenIndex;
-                                const templateInfo = templateInfos?.[templateIndex]?.result as { name: string } | undefined;
-                                return templateInfo?.name || 'Unnamed';
-                              })()}
+                              {template?.name || 'Unnamed'}
                             </p>
                             <p className="text-xs text-gray-600">
                               ID: {tokenId.toString()}

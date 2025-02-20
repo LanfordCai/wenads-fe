@@ -37,17 +37,27 @@ const AvatarGenerator: FC = () => {
   const allTemplatesLoaded = categoryContracts.every(contract => contract.templates.length > 0);
 
   useEffect(() => {
-    console.log("hasNFT", hasNFT);
-    console.log("allTemplatesLoaded", allTemplatesLoaded);
-    console.log("initializedRef.current", initializedRef.current);
-    console.log("isLoading", isLoading);
-      console.log("avatarTemplates", avatarTemplates);
-    // Only set components if we have loaded templates and haven't initialized yet
-    if ((!hasNFT && !allTemplatesLoaded) || initializedRef.current) return;
+    // Add debug logging
+    console.log("Component Loading State:", {
+      hasNFT,
+      allTemplatesLoaded,
+      isInitialized: initializedRef.current,
+      isLoading,
+      avatarTemplates,
+      categoryContracts: categoryContracts.map(c => c.templates.length)
+    });
+
+    // Reset initialization if templates are not loaded
+    if (!allTemplatesLoaded) {
+      initializedRef.current = false;
+      return;
+    }
+
+    // Only proceed if we haven't initialized yet
+    if (initializedRef.current) return;
 
     // If still loading NFT status, wait
     if (isLoading) return;
-      console.log("avatarTemplates2", avatarTemplates);
 
     const initialComponents: AvatarState = {
       body: {
@@ -58,17 +68,18 @@ const AvatarGenerator: FC = () => {
       }
     };
 
-    // If user has NFT and we have the avatar data, use those components
+    // For users with NFT, wait for all template data
     if (hasNFT && avatar) {
-      // Wait for all template IDs to be loaded
+      // Ensure all template IDs are loaded
       if (!avatarTemplates.background || !avatarTemplates.hairstyle || 
           !avatarTemplates.eyes || !avatarTemplates.mouth || 
           !avatarTemplates.flower) {
+        console.log("Waiting for template IDs to load");
         return;
       }
 
-
       // Map the component IDs to their full info
+      let allComponentsFound = true;
       categories.forEach((category, index) => {
         const contract = categoryContracts[index];
         let templateId: bigint | undefined;
@@ -100,13 +111,21 @@ const AvatarGenerator: FC = () => {
               name: template.name,
               price: template.price
             };
+          } else {
+            console.log(`Template not found for ${category} with ID ${templateId.toString()}`);
+            allComponentsFound = false;
           }
         }
       });
-      initializedRef.current = true;
-    } else if (!hasNFT && allTemplatesLoaded) {
-      console.log("setting default components");
+
+      // Only proceed if all components were found
+      if (!allComponentsFound) {
+        console.log("Not all components were found, waiting...");
+        return;
+      }
+    } else if (!hasNFT) {
       // Set default components for users without NFT
+      let allDefaultsFound = true;
       categoryContracts.forEach((contract, index) => {
         const category = categories[index];
         const firstTemplate = contract.templates[0];
@@ -117,12 +136,27 @@ const AvatarGenerator: FC = () => {
             name: firstTemplate.name,
             price: firstTemplate.price
           };
+        } else {
+          console.log(`No template found for ${category}`);
+          allDefaultsFound = false;
         }
       });
-      initializedRef.current = true;
+
+      // Only proceed if all defaults were found
+      if (!allDefaultsFound) {
+        console.log("Not all default components were found, waiting...");
+        return;
+      }
     }
 
-    setSelectedComponents(initialComponents);
+    // Only set state if we have all required components
+    if (Object.keys(initialComponents).length === categories.length + 1) { // +1 for body
+      console.log("Setting initial components:", initialComponents);
+      setSelectedComponents(initialComponents);
+      initializedRef.current = true;
+    } else {
+      console.log("Missing some components, waiting...");
+    }
   }, [allTemplatesLoaded, hasNFT, avatar, isLoading, avatarTemplates, categoryContracts]);
 
   const handleSelect = (category: ComponentCategory, component: ComponentInfo) => {
